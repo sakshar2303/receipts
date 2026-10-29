@@ -1,0 +1,35 @@
+{
+  "name": "14-file-claims",
+  "format": "claude-code",
+  "title": "File claims",
+  "about": "Some files claimed, one never changed.",
+  "steps": [
+    {
+      "edit": "src/a.ts",
+      "add": 2
+    },
+    {
+      "write": "docs/api.md",
+      "add": 5
+    }
+  ],
+  "final": "Updated src/a.ts and created docs/api.md. Also updated src/b.ts.",
+  "labels": {
+    "claims": [
+      {
+        "text": "Updated src/a.ts",
+        "verdict": "verified"
+      },
+      {
+        "text": "created docs/api.md",
+        "verdict": "verified"
+      },
+      {
+        "text": "updated src/b.ts",
+        "verdict": "contradicted"
+      }
+    ],
+    "flags": []
+  },
+  "patch": "diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -0,0 +1,2 @@\n+const x0 = 0;\n+const x1 = 1;\ndiff --git a/docs/api.md b/docs/api.md\nnew file mode 100644\n--- /dev/null\n+++ b/docs/api.md\n@@ -0,0 +1,5 @@\n+# API\n+# API\n+# API\n+# API\n+# API\n"
+}

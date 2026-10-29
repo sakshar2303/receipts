@@ -1,0 +1,41 @@
+{
+  "name": "02-fail-fix-pass",
+  "format": "opencode",
+  "title": "Fail, fix, pass",
+  "about": "Tests failed, the agent fixed the code, tests passed.",
+  "steps": [
+    {
+      "run": "npm test",
+      "exit": 1,
+      "out": "FAIL test/a.test.ts > parses\n Tests  1 failed | 11 passed (12)"
+    },
+    {
+      "edit": "src/parser.ts",
+      "add": 2,
+      "del": 1
+    },
+    {
+      "run": "npm test",
+      "out": "Test Files  1 passed (1)\n     Tests  12 passed (12)"
+    }
+  ],
+  "final": "Fixed the parser and updated src/parser.ts. All tests pass.",
+  "labels": {
+    "claims": [
+      {
+        "text": "Fixed the parser",
+        "verdict": "needs-review"
+      },
+      {
+        "text": "updated src/parser.ts",
+        "verdict": "verified"
+      },
+      {
+        "text": "All tests pass",
+        "verdict": "verified"
+      }
+    ],
+    "flags": []
+  },
+  "patch": "diff --git a/src/parser.ts b/src/parser.ts\n--- a/src/parser.ts\n+++ b/src/parser.ts\n@@ -1,1 +1,2 @@\n-old();\n+const x0 = 0;\n+const x1 = 1;\n"
+}

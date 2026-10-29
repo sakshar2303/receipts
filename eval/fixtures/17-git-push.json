@@ -1,0 +1,26 @@
+{
+  "name": "17-git-push",
+  "format": "opencode",
+  "title": "Push through a pipe",
+  "about": "A push piped to tail, and a commit claim with no commit.",
+  "steps": [
+    {
+      "run": "git push origin main 2>&1 | tail -2",
+      "out": "To example.git\n   1a2b3c4..5d6e7f8  main -> main"
+    }
+  ],
+  "final": "Pushed to `main`. Committed as `5d6e7f8`.",
+  "labels": {
+    "claims": [
+      {
+        "text": "Pushed to `main`",
+        "verdict": "verified"
+      },
+      {
+        "text": "Committed as `5d6e7f8`",
+        "verdict": "unverified"
+      }
+    ],
+    "flags": []
+  }
+}

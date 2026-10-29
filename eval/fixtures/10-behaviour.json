@@ -1,0 +1,28 @@
+{
+  "name": "10-behaviour",
+  "format": "claude-code",
+  "title": "Behaviour claim",
+  "about": "The agent claims the UI feels faster.",
+  "steps": [
+    {
+      "edit": "src/dropdown.tsx",
+      "add": 4,
+      "del": 2
+    },
+    {
+      "run": "npm test",
+      "out": "Test Files  1 passed (1)\n     Tests  12 passed (12)"
+    }
+  ],
+  "final": "Memoised the options list. The dropdown now feels faster.",
+  "labels": {
+    "claims": [
+      {
+        "text": "The dropdown now feels faster",
+        "verdict": "needs-review"
+      }
+    ],
+    "flags": []
+  },
+  "patch": "diff --git a/src/dropdown.tsx b/src/dropdown.tsx\n--- a/src/dropdown.tsx\n+++ b/src/dropdown.tsx\n@@ -1,2 +1,4 @@\n-a();\n-b();\n+const x0 = 0;\n+const x1 = 1;\n+const x2 = 2;\n+const x3 = 3;\n"
+}

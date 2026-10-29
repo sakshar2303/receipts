@@ -92,6 +92,8 @@ const INSPECTION =
 const isInspection = (segment: string, command: string) =>
   INSPECTION.test(segment) || (INLINE_SCRIPT.test(segment) && !WRITE_API.test(command));
 
+const DENIES_FAILURE =
+  /\b(?:no|zero|0|without(?:\s+any)?)\s+(?:errors?|failures?|issues|problems|warnings)\b|\berror[- ]free\b/gi;
 const MENTIONS_FAILURE =
   /\bfail|\berror|\bexit(?:ed)?\s+(?:code\s+)?\d|\bbroke|\bdidn'?t\b|\bdid not\b|\bnot (?:pass|work)|\bissue|\bproblem|\bwarning|\bcrash/i;
 
@@ -128,16 +130,13 @@ export function failingCommandIgnored(ctx: FlagContext): Flag | null {
     });
     if (retried) continue;
 
-    const word = head
-      .split(" ")
-      .find((w) => w.length >= 4 && !/^(?:npm|pnpm|yarn|node|python3?|run|npx)$/.test(w));
+    // Naming the command is not acknowledging it failed ("the build succeeds"),
+    // so only failure words count, and denials ("no errors") are removed first.
     const nextTexts = steps
       .filter((s) => s.index > run.stepIndex && s.isSidechain === run.isSidechain && s.text.trim())
       .slice(0, 3)
       .map((s) => s.text);
-    const mentioned = nextTexts.some(
-      (t) => MENTIONS_FAILURE.test(t) || (word !== undefined && t.includes(word)),
-    );
+    const mentioned = nextTexts.some((t) => MENTIONS_FAILURE.test(t.replace(DENIES_FAILURE, "")));
     if (!mentioned) ignored.push(run);
   }
   if (ignored.length === 0) return null;

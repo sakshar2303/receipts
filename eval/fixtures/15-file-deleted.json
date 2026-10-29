@@ -1,0 +1,27 @@
+{
+  "name": "15-file-deleted",
+  "format": "opencode",
+  "title": "Deleted files",
+  "about": "One deletion happened, one did not.",
+  "steps": [
+    {
+      "run": "rm src/legacy.ts",
+      "out": ""
+    }
+  ],
+  "final": "Deleted src/legacy.ts. Removed src/old.ts too.",
+  "labels": {
+    "claims": [
+      {
+        "text": "Deleted src/legacy.ts",
+        "verdict": "verified"
+      },
+      {
+        "text": "Removed src/old.ts",
+        "verdict": "contradicted"
+      }
+    ],
+    "flags": []
+  },
+  "patch": "diff --git a/src/legacy.ts b/src/legacy.ts\ndeleted file mode 100644\n--- a/src/legacy.ts\n+++ /dev/null\n@@ -1,3 +0,0 @@\n-const x0 = 0;\n-const x1 = 1;\n-const x2 = 2;\n"
+}

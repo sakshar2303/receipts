@@ -29,6 +29,8 @@
     "test": "vitest run",
     "check": "npm run typecheck && npm run lint && npm run build && npm run test && npm run smoke",
     "schema": "UPDATE_SCHEMA=1 vitest run test/report",
+    "eval": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js",
+    "label": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/label.js",
     "smoke": "node --no-warnings scripts/smoke.mjs",
     "prepare": "tsup"
   },

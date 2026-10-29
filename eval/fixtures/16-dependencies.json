@@ -1,0 +1,31 @@
+{
+  "name": "16-dependencies",
+  "format": "claude-code",
+  "title": "Dependency claims",
+  "about": "One package landed in the manifest, one did not.",
+  "steps": [
+    {
+      "run": "npm install zod",
+      "out": "added 1 package"
+    },
+    {
+      "run": "npm install lodash",
+      "out": "up to date"
+    }
+  ],
+  "final": "Installed zod. Installed lodash.",
+  "labels": {
+    "claims": [
+      {
+        "text": "Installed zod",
+        "verdict": "verified"
+      },
+      {
+        "text": "Installed lodash",
+        "verdict": "unverified"
+      }
+    ],
+    "flags": []
+  },
+  "patch": "diff --git a/package.json b/package.json\n--- a/package.json\n+++ b/package.json\n@@ -1,1 +1,2 @@\n   \"dependencies\": {\n+    \"zod\": \"^4.1.0\",\ndiff --git a/package-lock.json b/package-lock.json\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -0,0 +1,1 @@\n+    \"node_modules/zod\": {\n"
+}

@@ -1,0 +1,27 @@
+{
+  "name": "27-shell-write-stale",
+  "format": "opencode",
+  "title": "Code changed by sed after the run",
+  "about": "A sed -i rewrote code after the tests passed.",
+  "steps": [
+    {
+      "run": "npm test",
+      "out": "Test Files  1 passed (1)\n     Tests  12 passed (12)"
+    },
+    {
+      "run": "sed -i '' 's/foo/bar/' src/a.ts",
+      "out": ""
+    }
+  ],
+  "final": "All tests pass.",
+  "labels": {
+    "claims": [
+      {
+        "text": "All tests pass",
+        "verdict": "stale"
+      }
+    ],
+    "flags": []
+  },
+  "patch": "diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1,1 +1,1 @@\n-foo();\n+bar();\n"
+}

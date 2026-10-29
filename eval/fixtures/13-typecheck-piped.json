@@ -1,0 +1,27 @@
+{
+  "name": "13-typecheck-piped",
+  "format": "opencode",
+  "title": "Typecheck through a pipe",
+  "about": "The typecheck output was piped to tail.",
+  "steps": [
+    {
+      "edit": "src/a.ts",
+      "add": 2
+    },
+    {
+      "run": "npx tsc --noEmit 2>&1 | tail -5",
+      "out": ""
+    }
+  ],
+  "final": "Typecheck passes.",
+  "labels": {
+    "claims": [
+      {
+        "text": "Typecheck passes",
+        "verdict": "verified"
+      }
+    ],
+    "flags": []
+  },
+  "patch": "diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -0,0 +1,2 @@\n+const x0 = 0;\n+const x1 = 1;\n"
+}
