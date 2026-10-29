@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+
+# Secrets never leave this machine.
+.env
+.env.*
+!.env.example
+
+# Local caches, generated reports and private eval labels.
+.receipts/
+receipts-report/
+eval/private/
+
+.DS_Store
+*.log
