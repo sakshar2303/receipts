@@ -13,6 +13,7 @@ import { DEFAULT_CACHE_DIR } from "../providers/cache.js";
 import type { Fetch } from "../providers/client.js";
 import { loadProviderEnv } from "../providers/env.js";
 import { colorsFor } from "../report/colors.js";
+import { renderHtml } from "../report/html/template.js";
 import { renderMarkdown } from "../report/markdown.js";
 import { buildReceipt } from "../report/receipt.js";
 import type { Receipt } from "../report/schema.js";
@@ -20,7 +21,7 @@ import { renderTerminal } from "../report/terminal.js";
 import type { Verdict } from "../types.js";
 import { resolveTarget } from "./target.js";
 
-export const FORMATS = ["terminal", "json", "md", "all"] as const;
+export const FORMATS = ["terminal", "html", "json", "md", "all"] as const;
 export type Format = (typeof FORMATS)[number];
 
 export interface CheckOptions {
@@ -37,6 +38,7 @@ export interface CheckOptions {
   failOn: Verdict[];
   config?: string;
   quiet: boolean;
+  open?: boolean;
 }
 
 export interface Io {
@@ -46,6 +48,8 @@ export interface Io {
   env: NodeJS.ProcessEnv;
   cwd: string;
   fetchImpl?: Fetch;
+  /** Opens a report file in a browser; injected so tests never launch one. */
+  openFile?: (file: string) => void;
 }
 
 /** The whole pipeline: find the session, read the changes, extract, check, flag, report. */
@@ -106,11 +110,15 @@ export async function runCheck(target: string, options: CheckOptions, io: Io): P
   else if (options.format === "md") io.write(markdown);
   else {
     let reportPath: string | undefined;
-    if (options.format === "all") {
+    if (options.format === "all" || options.format === "html") {
       mkdirSync(options.out, { recursive: true });
-      writeFileSync(path.join(options.out, "report.json"), json);
-      writeFileSync(path.join(options.out, "report.md"), markdown);
-      reportPath = path.join(options.out, "report.json");
+      reportPath = path.join(options.out, "report.html");
+      writeFileSync(reportPath, renderHtml(receipt, markdown));
+      if (options.format === "all") {
+        writeFileSync(path.join(options.out, "report.json"), json);
+        writeFileSync(path.join(options.out, "report.md"), markdown);
+      }
+      if (options.open) io.openFile?.(path.resolve(reportPath));
     }
     if (!options.quiet) {
       io.write(

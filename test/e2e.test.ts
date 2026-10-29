@@ -53,6 +53,10 @@ describe.runIf(existsSync(CLI))("built CLI on the demo", () => {
     expect(r.stdout).toContain("No free model is reachable, so claims come from patterns only.");
   });
 
+  it("exits 3 when there is no report to open", () => {
+    expect(run(["open", "no-such-dir"]).code).toBe(3);
+  });
+
   it("prints Markdown and explains", () => {
     expect(run(["check", "demo", "--no-llm", "--format", "md"]).stdout).toMatch(/^### Receipts: /);
     expect(run(["explain", "stale"]).stdout).toMatch(/^stale\n/);

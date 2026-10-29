@@ -159,3 +159,17 @@ work, and the hook prints what happened.
 
 `schemaVersion` is "1.0". The zod schema in `src/report/schema.ts` is the source; `npm run
 schema` regenerates `schema/receipt.schema.json`, and a test fails if they differ.
+
+## The HTML report has no build step of its own
+
+The client behaviour is one TypeScript function, inlined into the page with
+`Function.prototype.toString()`. It must not use imports or anything from its module, which a
+test checks. This keeps one toolchain (tsc, ESLint, tsup) for all code and keeps the report a
+single file that works from `file://`, offline, and on GitHub Pages.
+
+## No URL ever appears in the page
+
+The report must make no external requests. Rather than trust that transcript text never
+contains a URL, the escaping makes it impossible for one to appear: HTML text writes "://"
+as "&#58;//", and the embedded JSON writes "/" as "\/". The browser shows and parses the
+original text unchanged.

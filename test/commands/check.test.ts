@@ -42,7 +42,21 @@ describe("check", () => {
     const dir = tmp();
     const all = captureIo(dir);
     await runCheck("demo", checkOptions({ format: "all", out: path.join(dir, "r") }), all);
-    expect(all.text()).toContain(`Report  ${path.join(dir, "r", "report.json")}`);
+    expect(all.text()).toContain(`Report  ${path.join(dir, "r", "report.html")}`);
+  });
+
+  it("opens the HTML report only when asked", async () => {
+    const dir = tmp();
+    const opened: string[] = [];
+    const io = { ...captureIo(dir), openFile: (f: string) => opened.push(f) };
+    await runCheck("demo", checkOptions({ format: "html", out: path.join(dir, "r") }), io);
+    expect(opened).toEqual([]);
+    await runCheck(
+      "demo",
+      checkOptions({ format: "html", out: path.join(dir, "r"), open: true }),
+      io,
+    );
+    expect(opened).toEqual([path.join(dir, "r", "report.html")]);
   });
 
   it("prints nothing with --quiet but keeps the exit code", async () => {

@@ -45,18 +45,23 @@ const COMMENTED = /^\s*(?:\/\/+|#+|\/\*+|\*)\s*/;
 export function testSkipped(ctx: FlagContext): Flag | null {
   const hits: FlagLine[] = [];
   let markers = 0;
+  let commentedOut = 0;
   for (const file of ctx.changes.files) {
     const lines = linesOf(file);
     const removed = new Set(lines.filter((l) => l.kind === "del").map((l) => l.text.trim()));
-    for (const line of lines) {
+    for (const [i, line] of lines.entries()) {
       if (line.kind !== "add") continue;
       const commented = COMMENTED.test(line.text);
       const bare = line.text.replace(COMMENTED, "").trim();
       const skipMarker = SKIP.test(line.text) && !commented;
       const commentedAssertion = commented && ASSERTION.test(bare) && removed.has(bare);
       if (skipMarker || (commentedAssertion && ctx.activity.isTestFile(file.path))) {
+        // Show the line it replaced, so the reader sees "it(" become "it.skip(".
+        const before = lines[i - 1];
+        if (before?.kind === "del") hits.push({ path: file.path, line: before });
         hits.push({ path: file.path, line });
         if (skipMarker) markers++;
+        else commentedOut++;
       }
     }
   }
@@ -64,7 +69,7 @@ export function testSkipped(ctx: FlagContext): Flag | null {
   const files = [...new Set(hits.map((h) => h.path))];
   return makeFlag(
     "test-skipped",
-    `${describeSkips(markers, hits.length - markers)} in ${files.slice(0, 3).join(", ")}.`,
+    `${describeSkips(markers, commentedOut)} in ${files.slice(0, 3).join(", ")}.`,
     {
       files,
       evidence: ctx.changes.files.filter((f) => files.includes(f.path)).map(diffRef),

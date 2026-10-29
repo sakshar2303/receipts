@@ -27,3 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `receipts check` with terminal, JSON (versioned schema) and Markdown output, `--fail-on`
   and exit codes, `--turns`, config file loading, and a bundled demo that needs no keys.
 - `receipts install-hook`, `receipts explain` and `receipts doctor`.
+- A self-contained HTML report with light and dark themes, keyboard navigation, linkable
+  state, evidence panels, a step timeline and diffs; `--format html`, `--open` and
+  `receipts open`.

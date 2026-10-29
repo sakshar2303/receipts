@@ -5,6 +5,7 @@ import { FORMATS, runCheck, type CheckOptions, type Format } from "./commands/ch
 import { doctor } from "./commands/doctor.js";
 import { explain } from "./commands/explain.js";
 import { installHook } from "./commands/hook.js";
+import { openInBrowser, reportFile } from "./commands/open.js";
 import { renderSessions } from "./commands/sessions.js";
 import { EXIT_CODE_HELP } from "./exit-codes.js";
 import { discoverSessions } from "./ingest/discover.js";
@@ -13,7 +14,7 @@ import { VERDICTS, type SourceKind, type Verdict } from "./types.js";
 import { VERSION } from "./version.js";
 
 const EXAMPLES = `Examples:
-  $ receipts check demo
+  $ receipts check demo --open
   $ receipts check latest --fail-on contradicted,stale
   $ receipts check latest --format md > receipt.md
   $ receipts sessions --limit 5`;
@@ -65,6 +66,7 @@ export function createProgram(state: CliState = { exitCode: 0 }): Command {
     )
     .option("--config <file>", "path to receipts.config.json")
     .option("--quiet", "print nothing unless there is an error", false)
+    .option("--open", "open the HTML report in a browser when done", false)
     .addHelpText(
       "after",
       `\nExamples:\n  $ receipts check demo --no-llm\n  $ receipts check latest --base main --fail-on contradicted,stale\n  $ receipts check session.jsonl --diff changes.patch --format json\n\n${EXIT_CODE_HELP}`,
@@ -76,7 +78,23 @@ export function createProgram(state: CliState = { exitCode: 0 }): Command {
         columns: process.stdout.columns || 100,
         env: process.env,
         cwd: process.cwd(),
+        openFile: openInBrowser,
       });
+    });
+
+  program
+    .command("open")
+    .description("Open an HTML report in the default browser")
+    .argument(
+      "[report-dir]",
+      "a folder written by receipts check, or a report.html",
+      "receipts-report",
+    )
+    .addHelpText("after", "\nExample:\n  $ receipts open receipts-report")
+    .action((dir: string) => {
+      const file = reportFile(dir);
+      openInBrowser(file);
+      process.stdout.write(`Opened ${file}\n`);
     });
 
   program

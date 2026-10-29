@@ -315,3 +315,58 @@ Spec deviations:
 - `--format` defaults to `all` (write report files and print the terminal summary);
   `terminal`, `json` and `md` print only to stdout, so `--format md > receipt.md` and
   piping JSON work. `html` arrives with the HTML report in milestone 8, as does `--open`.
+
+## 2026-10-29 23:05 IST: Milestone 8, HTML report
+
+Built: `receipts-report/report.html`, one self-contained file with inline CSS, an inline
+script and the receipt as JSON. It has the header with Copy Markdown and Download JSON, the
+verdict strip as filters, the summary sentence, the final message with every claim
+underlined in its verdict colour, the claim list with lazy evidence panels, a timeline of
+every step, the flags table, the changed-files table with diffs, and a footer that says what
+left the machine. Light and dark themes follow the system and can be switched (remembered in
+localStorage behind try/catch). Keyboard: j/k, Enter, /, 1 to 5, Esc. Filters, selection and
+open panels live in the URL hash. `--format html`, `--open` and `receipts open` work.
+
+How it is built: the page is rendered on the server side as plain escaped HTML, so it
+reads well before any script runs. The client script is a single TypeScript function inlined
+with `Function.prototype.toString()`, so it is type-checked and linted like the rest of the
+code but ships with no bundler step and no external file. It builds every node with
+`textContent`, never `innerHTML`. Evidence panels, flag hunks and file diffs render only
+when opened, so a 2,001-step session builds and renders in about 100 ms and stays under
+1.5 MB.
+
+No external requests, by construction: `esc()` writes "://" as "&#58;//", and the embedded
+JSON escapes "/" as "\/" (a valid JSON escape), so even a URL quoted from a transcript never
+appears as one in the page source. A test feeds the report a hostile session with
+`<script>`, `</script>`, an `onerror` image and URLs, and checks the page.
+
+Browser review (built-in browser, 1440, 1100 and 390 px, light and dark). What it caught:
+
+- **Blocks instead of ticks.** With 15 steps, each tick was a 40 px block. Each step now owns
+  an equal slot with a 3 px line centred in it, so short and long sessions read the same and
+  markers line up with their ticks. The stale story reads at a glance: a green test marker at
+  step 8, then emphasised edits at steps 10 to 12.
+- **Empty left pane.** On wide screens the final message scrolled away while the claim list
+  was still long. It is now sticky.
+- **The verdict strip broke on phones.** At 390 px, "CONTRADICTED" ran into "STALE" and
+  "NEEDS REVIEW" was cut. On narrow screens the strip becomes five ledger rows.
+- **Nested tables inherited ledger styles.** Diffs inside the files table got 8 px padding,
+  row borders and a flat background, which hid the add and remove colours. Ledger styles now
+  use child selectors only.
+- **"Bashexit 0".** Adjacent text nodes in a flex row merged into one item. Each part is now
+  its own element.
+- **Paths broke mid-word** in the flags table ("test/parser.test." / "ts"); `overflow-wrap:
+anywhere` became `break-word`.
+- **Theme button label went stale** when the system theme changed after load; it now
+  listens for the change.
+- **The skip hunk showed only `+ it.skip(`.** The test-skipped flag now keeps the line it
+  replaced, so the reader sees `it(` become `it.skip(`.
+- No console errors and no network requests other than the page itself, in every state
+  tested.
+
+Design notes: the light "stale" colour went from #9a6a00 to #875c00. The original measured
+4.54:1 on the page and 4.19:1 on the tinted surfaces, under WCAG AA for small text; the new
+one is 5.65:1 and 5.22:1. The spec allows tuning for contrast. Verdict tags carry a word and
+a CSS shape (filled circle, cross, half circle, ring, diamond) so colour is never the only
+signal. The footer is honest about hosted models: with a Groq or OpenRouter model it says the
+final message was sent there, not "nothing left your machine".
