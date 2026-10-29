@@ -141,3 +141,21 @@ destructive ones: a missed `git reset --hard` is worse than an extra line in a t
 Credential-looking values are replaced with `[redacted <kind>]` before any line is stored on
 a flag. The same function will run over every string in every output format, so a secret in
 a transcript or diff is never printed, written to report.json, or shown in the HTML report.
+
+## Output formats
+
+`--format all` is the default: it writes report.json and report.md (and report.html from
+milestone 8) to `--out` and prints the terminal summary. `terminal`, `json` and `md` write
+only to stdout and create no files, so they can be piped or redirected. `--quiet` silences
+the terminal summary, never the exit code.
+
+## Exit codes in hooks
+
+The pre-push hook blocks only on exit 1, a `--fail-on` match. A usage error, a missing
+session or an internal error never blocks a push: a broken tool should not stop someone's
+work, and the hook prints what happened.
+
+## report.json is versioned
+
+`schemaVersion` is "1.0". The zod schema in `src/report/schema.ts` is the source; `npm run
+schema` regenerates `schema/receipt.schema.json`, and a test fails if they differ.

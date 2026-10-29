@@ -23,3 +23,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - name: Smoke run on the demo
+        run: node dist/receipts.js check demo --no-llm --format all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: receipts-report-node-${{ matrix.node }}
+          path: receipts-report/

@@ -24,3 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Risk flags: edited or skipped tests, weakened assertions, lowered coverage, sensitive
   files, secrets (redacted), dangerous commands, lockfile churn, unmentioned changes, large
   diffs and ignored failures, with severity overrides.
+- `receipts check` with terminal, JSON (versioned schema) and Markdown output, `--fail-on`
+  and exit codes, `--turns`, config file loading, and a bundled demo that needs no keys.
+- `receipts install-hook`, `receipts explain` and `receipts doctor`.

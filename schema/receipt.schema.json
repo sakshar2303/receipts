@@ -1,0 +1,966 @@
+{
+  "$id": "https://github.com/sakshar2303/receipts/schema/receipt.schema.json",
+  "title": "Receipt",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "receiptsVersion": {
+      "type": "string"
+    },
+    "generatedAt": {
+      "type": "string"
+    },
+    "session": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "claude-code",
+            "opencode"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "repo": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "string"
+        },
+        "stepCount": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "turns": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "title",
+        "repo",
+        "model",
+        "startedAt",
+        "stepCount",
+        "turns"
+      ],
+      "additionalProperties": false
+    },
+    "changes": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "git",
+            "patch",
+            "transcript"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "notice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "oldPath": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "added",
+                  "deleted",
+                  "modified",
+                  "renamed"
+                ]
+              },
+              "binary": {
+                "type": "boolean"
+              },
+              "added": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "removed": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "hunks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "header": {
+                      "type": "string"
+                    },
+                    "oldStart": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "oldLines": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "newStart": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "newLines": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "add",
+                              "del",
+                              "context"
+                            ]
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "oldLine": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "newLine": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "text",
+                          "oldLine",
+                          "newLine"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "header",
+                    "oldStart",
+                    "oldLines",
+                    "newStart",
+                    "newLines",
+                    "lines"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "mentioned": {
+                "type": "boolean"
+              },
+              "flags": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "test-file-modified",
+                    "test-skipped",
+                    "assertion-weakened",
+                    "coverage-threshold-lowered",
+                    "sensitive-file",
+                    "secret-in-diff",
+                    "dangerous-command",
+                    "lockfile-churn",
+                    "unmentioned-change",
+                    "large-diff",
+                    "failing-command-ignored"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "path",
+              "oldPath",
+              "status",
+              "binary",
+              "added",
+              "removed",
+              "hunks",
+              "truncated",
+              "mentioned",
+              "flags"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "source",
+        "label",
+        "notice",
+        "files"
+      ],
+      "additionalProperties": false
+    },
+    "finalMessage": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "stepIndex": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "text",
+        "stepIndex"
+      ],
+      "additionalProperties": false
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "text": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "tests-pass",
+              "tests-added",
+              "build-passes",
+              "typecheck-passes",
+              "lint-passes",
+              "file-changed",
+              "file-created",
+              "file-deleted",
+              "dependency-added",
+              "dependency-removed",
+              "command-ran",
+              "no-errors",
+              "bug-fixed",
+              "feature-done",
+              "behaviour",
+              "scope"
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "span": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "end": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "start",
+              "end"
+            ],
+            "additionalProperties": false
+          },
+          "extractedBy": {
+            "type": "string",
+            "enum": [
+              "pattern",
+              "llm",
+              "both"
+            ]
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "contradicted",
+              "stale",
+              "unverified",
+              "needs-review"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "run"
+                    },
+                    "stepIndex": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "toolId": {
+                      "type": "string"
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "segment": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exitCode": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "isSidechain": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "stepIndex",
+                    "toolId",
+                    "command",
+                    "segment",
+                    "exitCode",
+                    "isSidechain"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "edit"
+                    },
+                    "stepIndex": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "toolId": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "isSidechain": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "stepIndex",
+                    "toolId",
+                    "path",
+                    "isSidechain"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "diff"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "added",
+                        "deleted",
+                        "modified",
+                        "renamed"
+                      ]
+                    },
+                    "added": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "removed": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "path",
+                    "status",
+                    "added",
+                    "removed"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "type",
+          "subject",
+          "span",
+          "extractedBy",
+          "verdict",
+          "evidence",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "counts": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "enum": [
+          "verified",
+          "contradicted",
+          "stale",
+          "unverified",
+          "needs-review"
+        ]
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "required": [
+        "verified",
+        "contradicted",
+        "stale",
+        "unverified",
+        "needs-review"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "test-file-modified",
+              "test-skipped",
+              "assertion-weakened",
+              "coverage-threshold-lowered",
+              "sensitive-file",
+              "secret-in-diff",
+              "dangerous-command",
+              "lockfile-churn",
+              "unmentioned-change",
+              "large-diff",
+              "failing-command-ignored"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "run"
+                    },
+                    "stepIndex": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "toolId": {
+                      "type": "string"
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "segment": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exitCode": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "isSidechain": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "stepIndex",
+                    "toolId",
+                    "command",
+                    "segment",
+                    "exitCode",
+                    "isSidechain"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "edit"
+                    },
+                    "stepIndex": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "toolId": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "isSidechain": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "stepIndex",
+                    "toolId",
+                    "path",
+                    "isSidechain"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "diff"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "added",
+                        "deleted",
+                        "modified",
+                        "renamed"
+                      ]
+                    },
+                    "added": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "removed": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "path",
+                    "status",
+                    "added",
+                    "removed"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "add",
+                        "del",
+                        "context"
+                      ]
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "oldLine": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "newLine": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "text",
+                    "oldLine",
+                    "newLine"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "path",
+                "line"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "heuristic": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "severity",
+          "title",
+          "detail",
+          "files",
+          "evidence",
+          "lines",
+          "heuristic"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "llm": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "model",
+        "notice"
+      ],
+      "additionalProperties": false
+    },
+    "notices": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "at": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "isSidechain": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "canonical": {
+                  "type": "string",
+                  "enum": [
+                    "read",
+                    "search",
+                    "list",
+                    "edit",
+                    "write",
+                    "run",
+                    "web",
+                    "other"
+                  ]
+                },
+                "command": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "exitCode": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ok",
+                    "error",
+                    "interrupted"
+                  ]
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "output": {
+                  "type": "string"
+                },
+                "paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "test",
+                          "build",
+                          "typecheck",
+                          "lint"
+                        ]
+                      },
+                      "outcome": {
+                        "type": "string",
+                        "enum": [
+                          "pass",
+                          "fail",
+                          "no-tests",
+                          "unknown"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "outcome"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "canonical",
+                "command",
+                "exitCode",
+                "status",
+                "note",
+                "output",
+                "paths",
+                "checks"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "index",
+          "at",
+          "model",
+          "isSidechain",
+          "text",
+          "tools"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "receiptsVersion",
+    "generatedAt",
+    "session",
+    "changes",
+    "finalMessage",
+    "claims",
+    "counts",
+    "summary",
+    "flags",
+    "llm",
+    "notices",
+    "steps"
+  ],
+  "additionalProperties": false
+}

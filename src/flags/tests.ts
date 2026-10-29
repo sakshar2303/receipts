@@ -44,6 +44,7 @@ const COMMENTED = /^\s*(?:\/\/+|#+|\/\*+|\*)\s*/;
 /** test-skipped: the diff adds a skip or focus marker, or comments out an assertion. */
 export function testSkipped(ctx: FlagContext): Flag | null {
   const hits: FlagLine[] = [];
+  let markers = 0;
   for (const file of ctx.changes.files) {
     const lines = linesOf(file);
     const removed = new Set(lines.filter((l) => l.kind === "del").map((l) => l.text.trim()));
@@ -55,6 +56,7 @@ export function testSkipped(ctx: FlagContext): Flag | null {
       const commentedAssertion = commented && ASSERTION.test(bare) && removed.has(bare);
       if (skipMarker || (commentedAssertion && ctx.activity.isTestFile(file.path))) {
         hits.push({ path: file.path, line });
+        if (skipMarker) markers++;
       }
     }
   }
@@ -62,13 +64,22 @@ export function testSkipped(ctx: FlagContext): Flag | null {
   const files = [...new Set(hits.map((h) => h.path))];
   return makeFlag(
     "test-skipped",
-    `${hits.length} added line${hits.length > 1 ? "s skip" : " skips"} or focus${hits.length > 1 ? "" : "es"} tests, or comment out an assertion, in ${files.slice(0, 3).join(", ")}.`,
+    `${describeSkips(markers, hits.length - markers)} in ${files.slice(0, 3).join(", ")}.`,
     {
       files,
       evidence: ctx.changes.files.filter((f) => files.includes(f.path)).map(diffRef),
       lines: hits,
     },
   );
+}
+
+function describeSkips(markers: number, commented: number): string {
+  const parts = [
+    markers ? `${markers} skip or focus marker${markers > 1 ? "s" : ""} added` : "",
+    commented ? `${commented} assertion${commented > 1 ? "s" : ""} commented out` : "",
+  ];
+  const text = parts.filter(Boolean).join(" and ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 const STRONG =

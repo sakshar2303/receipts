@@ -165,6 +165,8 @@ export type EvidenceRef =
       stepIndex: number;
       toolId: string;
       command: string;
+      /** The part of a chained command that the verdict is about, normalised. */
+      segment: string | null;
       exitCode: number | null;
       isSidechain: boolean;
     }

@@ -10,7 +10,8 @@ const PKG = String.raw`\x60?(?<pkg>@?[a-z0-9][\w.-]*(?:/[\w.-]+)?)\x60?`;
 // "npm run typecheck", "`pnpm lint`": a package-manager prefix before a check name.
 const RUNNER = String.raw`\x60?(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?)?`;
 // A phrase subject runs to the end of the clause.
-const PHRASE = String.raw`(?<phrase>[^.;:\n]+?)(?=[.;:\n]|,\s|\s+and\s|\s+so\s|$)`;
+// A dot inside a word ("parser.test.ts") does not end it.
+const PHRASE = String.raw`(?<phrase>(?:[^.;:\n]|\.(?=\S))+?)(?=[.;:\n](?:\s|$)|[;:\n]|,\s|\s+and\s|\s+so\s|$)`;
 
 interface Pattern {
   type: ClaimType;
@@ -122,7 +123,7 @@ const PATTERNS: Pattern[] = [
   p("behaviour", String.raw`\bno\s+breaking\s+changes\b`),
   p(
     "behaviour",
-    String.raw`\b(?:now|should\s+now)\s+(?:correctly\s+|properly\s+)?(?:works?|loads?|renders?|shows?|returns?|handles?|feels?|displays?|responds?|runs?|behaves?)\b${PHRASE}?`,
+    String.raw`\b(?:now|should\s+now)\s+(?:correctly\s+|properly\s+)?(?:works?|loads?|renders?|shows?|returns?|handles?|feels?|displays?|responds?|runs?|behaves?)\b(?:\s+${PHRASE})?`,
   ),
   p(
     "behaviour",
@@ -152,8 +153,11 @@ export function extractPatternClaims(message: string): DraftClaim[] {
     for (const pattern of PATTERNS) {
       pattern.re.lastIndex = 0;
       for (const m of segment.text.matchAll(pattern.re)) {
-        const start = segment.start + m.index;
-        const end = start + m[0].trimEnd().length;
+        // A behaviour claim reads as a whole clause: "The parser now handles quoted
+        // commas", not "now handles".
+        const from = pattern.type === "behaviour" ? clauseStart(segment.text, m.index) : m.index;
+        const start = segment.start + from;
+        const end = segment.start + m.index + m[0].trimEnd().length;
         if (inSegment.some((c) => c.span.start < end && start < c.span.end)) continue;
         const clause = segment.text.slice(0, m.index).split(CLAUSE_BREAK).pop() ?? "";
         if (NEGATED.test(clause) || /\?\s*$/.test(segment.text)) continue;
@@ -175,6 +179,13 @@ export function extractPatternClaims(message: string): DraftClaim[] {
 // A bare name (no slash) needs a lowercase extension to count as one.
 function looksLikeFile(path: string): boolean {
   return path.includes("/") || /\.[a-z][a-z0-9]{0,7}$|\.[0-9][a-z0-9]{0,7}$/.test(path);
+}
+
+function clauseStart(text: string, index: number): number {
+  let start = 0;
+  for (const m of text.slice(0, index).matchAll(CLAUSE_BREAK)) start = m.index + m[0].length;
+  while (/\s/.test(text[start] ?? "") && start < index) start++;
+  return start;
 }
 
 function subjectOf(type: ClaimType, groups: Record<string, string | undefined>): string {

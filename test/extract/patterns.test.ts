@@ -99,6 +99,13 @@ describe("pattern extractor", () => {
     expect(types("The helper was added in src/types.")).toEqual([]);
   });
 
+  it("keeps dotted paths inside phrases and whole behaviour clauses", () => {
+    const [tests] = extractPatternClaims("Added tests for empty input in test/parser.test.ts.");
+    expect(tests?.subject).toBe("empty input in test/parser.test.ts");
+    const [behaviour] = extractPatternClaims("All good, and the parser now handles quoted commas.");
+    expect(behaviour?.text).toBe("the parser now handles quoted commas");
+  });
+
   it("does not take version numbers for paths", () => {
     expect(types("Updated to v1.2.")).toEqual([]);
     expect(types("`Step.userText` added.")).toEqual([]);

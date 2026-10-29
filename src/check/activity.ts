@@ -103,12 +103,13 @@ export class Activity {
   }
 }
 
-export function runRef(run: RunEvent): EvidenceRef {
+export function runRef(run: RunEvent & { result?: RunOutcome }): EvidenceRef {
   return {
     kind: "run",
     stepIndex: run.stepIndex,
     toolId: run.call.id,
     command: typeof run.call.input.command === "string" ? run.call.input.command : run.call.name,
+    segment: run.result?.segment ?? null,
     exitCode: run.call.exitCode,
     isSidechain: run.isSidechain,
   };

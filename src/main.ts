@@ -4,10 +4,11 @@ import { ReceiptsError } from "./errors.js";
 import { ExitCode } from "./exit-codes.js";
 
 async function main(argv: readonly string[]): Promise<number> {
-  const program = createProgram();
+  const state = { exitCode: ExitCode.Ok as number };
+  const program = createProgram(state);
   try {
     await program.parseAsync(argv);
-    return ExitCode.Ok;
+    return state.exitCode;
   } catch (error) {
     if (error instanceof CommanderError) {
       // Commander uses 1 for parse errors; 1 is reserved for --fail-on matches.

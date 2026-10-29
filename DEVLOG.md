@@ -268,3 +268,50 @@ The first run on real sessions was noisy. What changed and why:
   reviewer should look at.
 - `.env.example` and other templates are not sensitive files; the spec's `.env*` glob
   would have flagged every project that ships one.
+
+## 2026-10-29 22:52 IST: Milestone 7, outputs
+
+Built: the receipt model (`report.json`, schema version 1.0, with
+`schema/receipt.schema.json` generated from the same zod schema and a test that keeps them
+equal), the terminal summary, Markdown for pull requests, `receipts check` with targets
+(`demo`, `latest`, `latest:<source>`, a .jsonl path, a session id, `--db`), `--turns`,
+`--fail-on` and the documented exit codes, `receipts.config.json` loading with readable
+errors, `install-hook`, `explain` and `doctor`. The bundled demo (a synthetic session about
+a CSV parser, plus its patch) needs no keys, no network and no git, and produces every
+verdict but one plus two high flags. CI now runs the demo and uploads the report.
+
+Timing: `receipts check latest --no-llm` on this repository's own session (205 steps,
+113 changed files) takes 0.87 s end to end, including git. The spec's target was 2 s for 300
+steps.
+
+Things that came up:
+
+- **The tool checked its own author.** Run on the session that is building it, Receipts found
+  one claim in my last message ("246 tests pass"), verified it against `npm run check` at the
+  step before, and flagged the CI workflow edit and 103 files the message never named.
+- **Evidence labels showed the wrong command.** That verified claim pointed at
+  `sed -i '' 's/expect(he…`, the first line of a chained command, not the `npm run check`
+  that proved it. Run evidence now carries the segment the verdict is about.
+- **Secrets and offsets.** Redacting a token in the final message changes its length, which
+  would move every claim's highlight. The final message is now redacted before claims are
+  extracted, so offsets point into the text that is shown. Everything else is redacted once,
+  on the finished receipt, so nothing in any format can skip it. A test puts a token in the
+  user message, the command, the output and the final message, and checks all three formats.
+- **Behaviour claims read as clauses.** The demo surfaced "now handles" as a claim. Behaviour
+  claims now start at the beginning of their clause ("The parser now handles quoted
+  commas"), and phrases no longer stop at the dot inside `test/parser.test.ts`.
+- **"latest" in a hook must mean this repository.** The pre-push hook passes `--repo`; with
+  it, "latest" only considers sessions that worked inside that repository and exits 3 (which
+  never blocks a push) when there is none, instead of checking some other project's session.
+- **Report size.** Every step stays in report.json for the timeline, but only tool calls
+  that a claim or flag points at, and failures, keep their output (clipped to 8 KB). Check
+  outcomes per call are computed in one pass; the first version looked each call up again,
+  which would have been quadratic on a 5,000-step session.
+
+Spec deviations:
+
+- The terminal shows the reason under every claim that is not verified. The spec asked for
+  one line per claim; without the reason, a blocked push says what failed but not why.
+- `--format` defaults to `all` (write report files and print the terminal summary);
+  `terminal`, `json` and `md` print only to stdout, so `--format md > receipt.md` and
+  piping JSON work. `html` arrives with the HTML report in milestone 8, as does `--open`.

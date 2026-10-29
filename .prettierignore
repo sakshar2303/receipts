@@ -3,3 +3,5 @@ receipts-report/
 .receipts/
 eval/private/
 package-lock.json
+schema/
+test/**/__snapshots__/

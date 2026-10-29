@@ -6,7 +6,7 @@ describe("cli", () => {
   it("documents examples and exit codes in --help", () => {
     const help = renderHelp();
     expect(help).toContain("Usage: receipts");
-    expect(help).toContain("receipts check demo --no-llm");
+    expect(help).toContain("receipts check latest --fail-on contradicted,stale");
     expect(help).toContain("2  Usage error");
   });
 
