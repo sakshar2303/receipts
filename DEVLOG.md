@@ -230,3 +230,41 @@ Spec deviation: the spec asks for one file per claim type under `src/check/`. Cl
 that share logic are grouped instead: `runs.ts` (tests, build, typecheck, lint, command,
 no-errors), `files.ts` (file claims, tests-added, scope), `dependencies.ts` and
 `review.ts`. A file per type would have copied the last-run and staleness logic four times.
+
+## 2026-10-29 22:40 IST: Milestone 6, flags
+
+Built: all 11 risk detectors from the spec, each with an id, severity, title, one-sentence
+detail, evidence, the triggering diff lines, and an explain text for `receipts explain`.
+Secret detection covers common token formats, private key blocks and long random values
+assigned to key, token, secret or password names; every flagged line is redacted before it
+is stored, and `redactSecrets` is ready for every output in milestone 7. Severity can be
+overridden per flag in config.
+
+Fake credentials in the tests are assembled at run time ("gh" + "p_" + ...), so the public
+repository never holds a string that looks like a real token. GitHub's push protection would
+have blocked a literal one, and it would have taught scanners to ignore this repo.
+
+The first run on real sessions was noisy. What changed and why:
+
+- **The detector caught itself.** This session's diff includes the flag detector and its
+  tests, which contain `it.skip(` and `describe.only(` inside strings. test-skipped fired on
+  them. Skip markers now count only at the start of a line, where code is, not inside a
+  string.
+- **Failed looks are not failures.** failing-command-ignored first fired on
+  `cat README.md; echo ===; ls docs` and `node -e "console.log(...)"` that exited 1
+  because a file was missing. Inspection commands (cat, sed -n, ls, git status, inline
+  scripts that write nothing) no longer count. After `;` or `|` the exit code is the last
+  command's, so a chain that ends in a look (`python3 build.py; ls *.png`) does not count
+  either. What remains on real data is a real crash: `node dist/cli.js --help` exiting 1
+  after a build, which was the `node:sqlite` bundling bug from milestone 2.
+- **unmentioned-change fired on almost every session.** Agents summarise by topic, not by
+  file. Docs, lockfiles and binary assets are now left out, a file counts as mentioned when
+  its name without the extension appears ("the tokenizer" names `tokenizer.ts`), and the
+  default threshold is 5 files instead of 3. It still fires on 9 of 11 real sessions, which
+  is the honest finding: agent summaries name a small part of what they changed.
+- **True positives kept.** One real session ran `git commit --no-verify` twice and
+  `git reset --hard`. Four sessions touched `.github/workflows/ci.yml`. Three edited an
+  existing test file (`test/replay.test.ts`); whether that was legitimate is exactly what a
+  reviewer should look at.
+- `.env.example` and other templates are not sensitive files; the spec's `.env*` glob
+  would have flagged every project that ships one.

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CLAIM_TYPES } from "./types.js";
+import { CLAIM_TYPES, FLAG_IDS } from "./types.js";
 
 /**
  * Everything a project may want to tune. Defaults live here; `receipts.config.json`
@@ -23,6 +23,13 @@ export const ConfigSchema = z
     docFiles: z.array(z.string()),
     manifests: z.array(z.string()),
     claimTypes: z.partialRecord(z.enum(CLAIM_TYPES), z.boolean()),
+    /** Paths whose change is always worth a look. */
+    sensitivePaths: z.array(z.string()),
+    severity: z.partialRecord(z.enum(FLAG_IDS), z.enum(["high", "medium", "low"])),
+    /** large-diff triggers above this many changed lines. */
+    largeDiffLines: z.number().int().positive(),
+    /** unmentioned-change triggers when more files than this go unmentioned. */
+    unmentionedFiles: z.number().int().nonnegative(),
   })
   .strict();
 
@@ -97,4 +104,19 @@ export const DEFAULT_CONFIG: Config = {
     "**/composer.json",
   ],
   claimTypes: {},
+  sensitivePaths: [
+    "**/.env",
+    "**/.env.*",
+    "**/secrets/**",
+    "**/*.pem",
+    "**/*.key",
+    "**/id_rsa*",
+    ".github/workflows/**",
+    ".gitlab-ci.yml",
+    "**/auth/**",
+    "**/migrations/**",
+  ],
+  severity: {},
+  largeDiffLines: 1000,
+  unmentionedFiles: 5,
 };

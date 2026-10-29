@@ -186,6 +186,45 @@ export interface CheckResult {
 
 export type CheckedClaim = Claim & CheckResult;
 
+export const FLAG_IDS = [
+  "test-file-modified",
+  "test-skipped",
+  "assertion-weakened",
+  "coverage-threshold-lowered",
+  "sensitive-file",
+  "secret-in-diff",
+  "dangerous-command",
+  "lockfile-churn",
+  "unmentioned-change",
+  "large-diff",
+  "failing-command-ignored",
+] as const;
+
+export type FlagId = (typeof FLAG_IDS)[number];
+
+export type Severity = "high" | "medium" | "low";
+
+/** A changed line worth showing under a flag, with its file. */
+export interface FlagLine {
+  path: string;
+  line: DiffLine;
+}
+
+/** A risk in the agent's work, whether or not the agent claimed anything about it. */
+export interface Flag {
+  id: FlagId;
+  severity: Severity;
+  title: string;
+  /** One plain sentence with the specifics. */
+  detail: string;
+  files: string[];
+  evidence: EvidenceRef[];
+  /** The changed lines that triggered the flag, already redacted. */
+  lines: FlagLine[];
+  /** True for detectors that guess (assertion-weakened); the report says so. */
+  heuristic: boolean;
+}
+
 /** A row in `receipts sessions`: cheap to compute, no full parse. */
 export interface SessionSummary {
   id: string;

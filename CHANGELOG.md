@@ -21,3 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patterns-only fallback.
 - Deterministic checkers for every claim type, with staleness that counts shell writes,
   output-aware reading of piped and chained commands, and a default configuration.
+- Risk flags: edited or skipped tests, weakened assertions, lowered coverage, sensitive
+  files, secrets (redacted), dangerous commands, lockfile churn, unmentioned changes, large
+  diffs and ignored failures, with severity overrides.

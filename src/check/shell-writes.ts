@@ -10,8 +10,9 @@ export interface ShellWrite {
 
 // Inline scripts are often read-only inspection ("node -e 'console.log(...)'");
 // they count as writers only when their text calls a file-writing API.
-const INLINE_SCRIPT = /^(?:python3?|node|perl|ruby|bash|sh|zsh)\s+(?:-\s*$|-\s*<<|-[ce]\b|-\s)/;
-const WRITE_API =
+export const INLINE_SCRIPT =
+  /^(?:python3?|node|perl|ruby|bash|sh|zsh)\s+(?:-\s*$|-\s*<<|-[ce]\b|-\s)/;
+export const WRITE_API =
   /\bopen\([^)]*['"][wa]\+?b?['"]|\.write(?:_text|_bytes)?\(|writeFile|appendFile|\brmSync|\bunlink|renameSync|shutil\.|os\.(?:remove|rename|replace)|copyFile/;
 
 const UNKNOWN_WRITERS: [RegExp, string][] = [

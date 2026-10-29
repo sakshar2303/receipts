@@ -128,3 +128,16 @@ reason. A false stale costs a reviewer a minute; a false verified is the worst f
 
 `src/check/` has one module per family of claim types, not one per type, so the last-run
 and staleness logic exists once.
+
+## Flags are about risk, not truth
+
+Flags never change a verdict. They point at things a reviewer should look at whether or not
+the agent claimed anything about them. Detectors that guess (assertion-weakened) say so in
+the report. Each detector errs towards silence on inspection commands and towards noise on
+destructive ones: a missed `git reset --hard` is worse than an extra line in a table.
+
+## Redaction
+
+Credential-looking values are replaced with `[redacted <kind>]` before any line is stored on
+a flag. The same function will run over every string in every output format, so a secret in
+a transcript or diff is never printed, written to report.json, or shown in the HTML report.
