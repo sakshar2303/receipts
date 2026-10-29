@@ -16,3 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `receipts sessions`.
 - Change sets from git (including untracked files), from a `--diff` patch, or from the
   agent's own edit records when there is no repository, plus a per-step edit timeline.
+- Claim extraction: a deterministic pattern extractor and an optional free-model extractor
+  (Ollama, Groq free tier, OpenRouter `:free`) with a disk cache, rate limits and a
+  patterns-only fallback.

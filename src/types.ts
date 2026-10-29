@@ -110,6 +110,44 @@ export interface EditEvent {
   isSidechain: boolean;
 }
 
+export const CLAIM_TYPES = [
+  "tests-pass",
+  "tests-added",
+  "build-passes",
+  "typecheck-passes",
+  "lint-passes",
+  "file-changed",
+  "file-created",
+  "file-deleted",
+  "dependency-added",
+  "dependency-removed",
+  "command-ran",
+  "no-errors",
+  "bug-fixed",
+  "feature-done",
+  "behaviour",
+  "scope",
+] as const;
+
+export type ClaimType = (typeof CLAIM_TYPES)[number];
+
+/** Character offsets into the final message; end is exclusive. */
+export interface Span {
+  start: number;
+  end: number;
+}
+
+export interface Claim {
+  id: number;
+  /** The claim as written in the final message (the text under span). */
+  text: string;
+  type: ClaimType;
+  /** What the claim is about, normalised: a path, a package, a command, or a phrase. */
+  subject: string;
+  span: Span;
+  extractedBy: "pattern" | "llm" | "both";
+}
+
 /** A row in `receipts sessions`: cheap to compute, no full parse. */
 export interface SessionSummary {
   id: string;

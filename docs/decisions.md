@@ -10,9 +10,10 @@ The budget is fewer than 10. Each entry says why it earns its place.
 | ---------- | ------------------------------------------------------------------------------ |
 | commander  | Subcommands, typed options and generated `--help` without hand-rolled parsing. |
 | picocolors | Terminal colour in 2 KB with no dependencies; we decide when colour is on.     |
+| zod        | Validates LLM output (and later the config file) with readable errors.         |
 
-Planned for later milestones: `zod` (config and LLM output validation) and `picomatch`
-(glob matching for sensitive paths and test files).
+Planned for later milestones: `picomatch` (glob matching for sensitive paths and test
+files).
 
 Deliberately left out:
 
@@ -76,3 +77,28 @@ notice always says how to choose one with `--base` and `--head`.
 Every git call goes through `execFile` with an argument array, `--end-of-options` before
 user-supplied refs, and no external diff or textconv drivers. Output is decoded as UTF-8
 without failing on invalid bytes.
+
+## Free models only
+
+Three providers, all through the OpenAI-compatible chat API with plain `fetch`: local
+Ollama, Groq, and OpenRouter. The guard in `src/providers/models.ts` refuses any OpenRouter
+model whose id does not end in `:free`, and an HTTP 402 ends the attempt instead of
+retrying. Receipts cannot tell a Groq key on the free tier from one on a paid plan, so the
+README must say to use a free-tier key only. When no free model answers, Receipts continues
+with patterns only and prints one line; the exit code does not change.
+
+Only the final message is sent, never the transcript. Provider keys are read from the
+environment or from a `.env` file in the current folder, and only the three provider keys
+are taken from that file.
+
+## The model never decides a verdict
+
+The LLM may find a claim and propose its type. Its quote must appear in the final message,
+and the quote must contain a cue for that type (a path for a file claim, "install" or
+"dependency" for a package claim). Verdicts come only from deterministic checkers.
+
+## Commit and push claims
+
+The spec's claim types had no place for "pushed to main" or "committed as abc123", which
+were the most common claims in real final messages. They map to `command-ran` with the
+subject `git push` or `git commit`, so the existing checker covers them.

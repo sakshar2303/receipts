@@ -140,3 +140,49 @@ Default range when no `--base` is given:
    started to working tree; the empty tree if that commit is the repository's first.
 4. In cases 2 and 3, if commits exist after the session ended, the range ends at the last
    commit made before the session ended.
+
+## 2026-10-29 21:55 IST: Milestone 4, extraction
+
+Built: a sentence and bullet segmenter that keeps exact offsets, a pattern extractor for
+all 16 claim types, an optional LLM extractor (free models only), a disk cache under
+`.receipts/cache/`, per-provider rate limits with `Retry-After` backoff, and the merge.
+`--no-llm` makes no network calls at all. Pattern extraction on the real final messages
+takes 0 to 8 ms each.
+
+Ran both extractors on the 11 real final messages (local Ollama only, so no real text left
+the machine). What that showed:
+
+- **Commit and push claims are the most common claims, and the spec had no pattern for
+  them.** "Pushed to `main`", "committed as `a45c3b2`", "five commits pushed" appeared
+  in 8 of 11 messages. They are mechanically checkable, so they now map to the spec's
+  `command-ran` type with subject `git commit` or `git push`. No new claim type was
+  needed.
+- **Agents name the command, not the check.** "`npm test` 263/263 passing", "`npm run
+typecheck` clean", "`npm run build` succeeds". The test, typecheck, lint and build
+  patterns now accept a package-manager prefix and `N/N passing`.
+- **Passive voice.** "`docs/demo.mp4` replaced", "`src/new.ts` was added". File claims
+  now match a path followed by the verb too.
+- **Words with two meanings.** "Paths are resolved against the session cwd" was read as a
+  bug fix, "Fixed and pushed as `20e81c0`" gave a bug subject of "and pushed", and
+  "`Step.userText` added" looked like a file. "resolved" and "patched" now need a problem
+  noun, a fix subject cannot start with a conjunction, and a path without a slash needs a
+  lowercase extension.
+- **A small local model invents claim types.** With the smallest local model, the LLM
+  extractor labelled a résumé's skill list ("Redis", "Agile/Scrum", "Shadcn UI") as
+  dependency and scope claims, a plan ("build the research … here now") as a command that
+  ran, and a test framework list as "tests pass". Two guards now run on every model claim:
+  its text must be found in the final message (an invented quote is dropped), and it must
+  contain a cue for its type: a path for file claims, "install", "dependency" or "package"
+  for dependency claims, and so on. Behaviour and feature claims have no cue; they become
+  needs-review, which is honest. After the guards the model added 18 claims on top of the
+  patterns' 31; most are behaviour descriptions. Whether the LLM is worth having on by
+  default is a question for the eval in milestone 9, which measures precision for
+  pattern-only against pattern plus LLM.
+- **Latency.** The local model took 1 to 19 seconds per message, against milliseconds for
+  patterns. Answers are cached by model and prompt, so a re-run is instant.
+- **Hinglish.** One real final message mixes Hindi and English ("Check green hai (93
+  tests)"). The patterns are English-only and missed it; the model found it. This goes into
+  the README's limitations.
+
+Groq caveat recorded in `docs/decisions.md`: Receipts cannot tell a free Groq key from
+one on a paid plan, so the docs must say to use a free-tier key only.
