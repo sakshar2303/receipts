@@ -9,4 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Project scaffold: strict TypeScript, ESLint, Prettier, Vitest, tsup and CI on Node 22 and 24.
-- `receipts` CLI placeholder with documented exit codes.
+- `receipts` CLI with documented exit codes.
+- Readers for Claude Code JSONL (including sub-agent transcripts) and OpenCode-format SQLite
+  sessions, normalised into one session model.
+- Session discovery, including OpenCode engines embedded in other apps, and
+  `receipts sessions`.

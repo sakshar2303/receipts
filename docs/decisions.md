@@ -6,13 +6,13 @@ Short records of choices that are not obvious from the code.
 
 The budget is fewer than 10. Each entry says why it earns its place.
 
-| Package   | Why                                                                            |
-| --------- | ------------------------------------------------------------------------------ |
-| commander | Subcommands, typed options and generated `--help` without hand-rolled parsing. |
+| Package    | Why                                                                            |
+| ---------- | ------------------------------------------------------------------------------ |
+| commander  | Subcommands, typed options and generated `--help` without hand-rolled parsing. |
+| picocolors | Terminal colour in 2 KB with no dependencies; we decide when colour is on.     |
 
-Planned for later milestones: `zod` (config and LLM output validation), `picocolors`
-(terminal colour that respects `NO_COLOR`), `picomatch` (glob matching for sensitive paths
-and test files).
+Planned for later milestones: `zod` (config and LLM output validation) and `picomatch`
+(glob matching for sensitive paths and test files).
 
 Deliberately left out:
 
@@ -45,3 +45,18 @@ without committing `dist/`. tsup is in maintenance mode; it is stable and suffic
 Commander exits with 1 on a parse error, but 1 means "a claim matched `--fail-on`". The
 entry point maps every Commander error to 2 so hooks never mistake a typo for a failing
 receipt.
+
+## Reading OpenCode-format databases
+
+The reader copies the database and its `-wal`/`-shm` sidecars to a temp folder and opens
+the copy. It opens the copy read-write, because SQLite needs to fold the copied WAL into
+the copy to see the newest rows; the live file is never opened. The copy also contains
+tables Receipts must never read (accounts, credentials), so it is deleted when the reader
+closes it, and only `session`, `message` and `part` are queried.
+
+## Timeline order
+
+Sub-agent steps come from separate files (Claude Code) or child sessions (OpenCode). All
+steps are merged and stably sorted by timestamp, then renumbered. Staleness checks depend
+on "what happened after what", so one true order matters more than keeping each
+transcript's steps contiguous.

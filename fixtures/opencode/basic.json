@@ -1,0 +1,112 @@
+{
+  "id": "ses_basic",
+  "title": "Add empty-input guard to tokenizer",
+  "directory": "/work/app",
+  "messages": [
+    { "role": "user", "text": "The tokenizer crashes on empty input. Fix it." },
+    {
+      "role": "assistant",
+      "model": "local/model-a",
+      "steps": [
+        {
+          "text": "Let me run the tests.",
+          "tools": [
+            {
+              "tool": "bash",
+              "input": { "command": "npm test" },
+              "output": "1 failing",
+              "metadata": { "exit": 1, "output": "1 failing", "truncated": false }
+            }
+          ]
+        },
+        {
+          "tools": [
+            {
+              "tool": "edit",
+              "input": {
+                "filePath": "/work/app/src/tokenizer.ts",
+                "oldString": "a",
+                "newString": "b"
+              },
+              "output": "Edit applied.",
+              "metadata": {
+                "filediff": { "file": "/work/app/src/tokenizer.ts", "additions": 3, "deletions": 1 }
+              }
+            },
+            {
+              "tool": "edit",
+              "input": { "filePath": "/work/app/src/other.ts", "oldString": "x", "newString": "y" },
+              "status": "error",
+              "output": "Could not find oldString in the file"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "steps": [
+        {
+          "tools": [
+            {
+              "tool": "write",
+              "input": { "filePath": "test/tokenizer.test.ts", "content": "one\ntwo\nthree\n" },
+              "metadata": { "exists": false }
+            },
+            {
+              "tool": "bash",
+              "input": { "command": "npm test" },
+              "metadata": { "exit": 0, "output": "Tests 8 passed", "truncated": false }
+            },
+            {
+              "tool": "bash",
+              "input": { "command": "npm run e2e" },
+              "metadata": { "exit": null, "output": "", "truncated": false }
+            },
+            {
+              "tool": "execute",
+              "input": { "code": "await tools.list(); await tools.run()" },
+              "output": "done",
+              "metadata": {
+                "engineCalls": [
+                  { "callId": "n1", "tool": "list_things", "input": {}, "output": "a,b" },
+                  { "callId": "n2", "tool": "run_thing", "input": {}, "output": "ok" }
+                ],
+                "toolCalls": [
+                  { "tool": "list_things", "status": "completed" },
+                  { "tool": "run_thing", "status": "completed" }
+                ]
+              }
+            }
+          ]
+        },
+        { "text": "Fixed the tokenizer and added tests in test/tokenizer.test.ts. All tests pass." }
+      ]
+    }
+  ],
+  "children": [
+    {
+      "id": "ses_child",
+      "title": "Sub-agent: run lint",
+      "directory": "/work/app",
+      "messages": [
+        { "role": "user", "text": "Run lint" },
+        {
+          "role": "assistant",
+          "model": "local/model-b",
+          "steps": [
+            {
+              "tools": [
+                {
+                  "tool": "bash",
+                  "input": { "command": "npm run lint" },
+                  "metadata": { "exit": 0, "output": "", "truncated": false }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
