@@ -186,3 +186,47 @@ typecheck` clean", "`npm run build` succeeds". The test, typecheck, lint and bui
 
 Groq caveat recorded in `docs/decisions.md`: Receipts cannot tell a free Groq key from
 one on a paid plan, so the docs must say to use a free-tier key only.
+
+## 2026-10-29 22:31 IST: Milestone 5, checkers
+
+Built: a deterministic checker for every claim type, quote-aware command splitting and
+normalisation, test-summary parsing for the common runners, shell-write detection, and an
+activity timeline that orders every run and every file change. The repository went public
+on GitHub at the user's request, and each milestone is now pushed when it is green.
+
+On the real sessions, with patterns only: 30 claims, 22 verified, 4 unverified, 2 stale and
+2 needs-review. Extracting and checking the largest session (768 steps) takes about 30 ms.
+The first pass gave much worse numbers, and the gap was all in how commands are read:
+
+- **Agents pipe almost everything.** `npm run typecheck 2>&1 | tail -5` and
+  `git push origin main 2>&1 | tail -3` were in most real sessions. The exit code is then
+  tail's, so the first version called all of them unverified. Now the output decides:
+  compilers and linters print their errors, so a clean tail after one counts as a pass,
+  and errors in it count as a failure. A push counts when its output shows `main -> main`
+  or "Everything up-to-date". Tests still need a summary line ("Tests 252 passed"). Piping
+  into grep or wc still leaves the run unknown.
+- **"&&" chains carry proof.** `npm run typecheck && npm test && git commit … && git push |
+tail` exited 0. A failing command stops an && chain and its code becomes the chain's, so
+  exit 0 proves every check before an `&&` passed. The first version only trusted the last
+  command. Pipes bind tighter than `&&`, so the trailing `| tail` does not break this; an
+  `||` anywhere, or a `;` later on, does.
+- **"After the final edit" was false once.** A verified test claim said "after the final
+  edit at step 23" while the run was at step 20. Step 23 was a docs edit, so the verdict was
+  right but the sentence was not. The reason now names the last code edit before the run.
+- **Read-only scripts looked like writes.** Agents inspect files with `node -e` and
+  `python3 - <<EOF`. Counting every inline script as a possible write made passing runs
+  stale. A script now counts only if its text calls a write API (`writeFileSync`,
+  `open(..., "w")`, `shutil`, …). `git checkout -b` no longer counts either.
+- **Kept on purpose:** one real "stale" comes from a `git rebase --exec` that only reworded
+  commit messages. A rebase can change files, and nothing in the transcript says this one
+  did not, so "may have changed files" stays. A false stale costs a reviewer a minute; a
+  false verified is the failure this tool exists to prevent.
+- **Composite scripts.** `npm run check` runs typecheck, lint, tests and build in one go.
+  It counts as a run of all four. If it fails, it is unclear which one failed.
+- **Filtered runs.** `vitest run test/parser.test.ts` passing does not verify "all tests
+  pass". It still verifies "the parser tests pass".
+
+Spec deviation: the spec asks for one file per claim type under `src/check/`. Claim types
+that share logic are grouped instead: `runs.ts` (tests, build, typecheck, lint, command,
+no-errors), `files.ts` (file claims, tests-added, scope), `dependencies.ts` and
+`review.ts`. A file per type would have copied the last-run and staleness logic four times.

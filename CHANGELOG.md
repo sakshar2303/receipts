@@ -19,3 +19,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Claim extraction: a deterministic pattern extractor and an optional free-model extractor
   (Ollama, Groq free tier, OpenRouter `:free`) with a disk cache, rate limits and a
   patterns-only fallback.
+- Deterministic checkers for every claim type, with staleness that counts shell writes,
+  output-aware reading of piped and chained commands, and a default configuration.

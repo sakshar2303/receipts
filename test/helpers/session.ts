@@ -39,3 +39,16 @@ export function runCall(command: string, exitCode: number | null, output = ""): 
     edits: [],
   };
 }
+
+export function editCall(file: string, added = 1, removed = 0, cwd = "/work/app"): ToolCall {
+  return {
+    id: `edit-${file}-${added}-${removed}`,
+    name: "Edit",
+    canonical: "edit",
+    input: { file_path: `${cwd}/${file}` },
+    output: "",
+    exitCode: null,
+    status: "ok",
+    edits: [{ path: file, absPath: `${cwd}/${file}`, kind: "edit", added, removed }],
+  };
+}

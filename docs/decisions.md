@@ -11,9 +11,7 @@ The budget is fewer than 10. Each entry says why it earns its place.
 | commander  | Subcommands, typed options and generated `--help` without hand-rolled parsing. |
 | picocolors | Terminal colour in 2 KB with no dependencies; we decide when colour is on.     |
 | zod        | Validates LLM output (and later the config file) with readable errors.         |
-
-Planned for later milestones: `picomatch` (glob matching for sensitive paths and test
-files).
+| picomatch  | Glob matching for test, doc and manifest files; small and dependency-free.     |
 
 Deliberately left out:
 
@@ -102,3 +100,31 @@ and the quote must contain a cue for that type (a path for a file claim, "instal
 The spec's claim types had no place for "pushed to main" or "committed as abc123", which
 were the most common claims in real final messages. They map to `command-ran` with the
 subject `git push` or `git commit`, so the existing checker covers them.
+
+## Reading exit codes
+
+A shell exit code belongs to the last command, so Receipts reads it as follows:
+
+- The check is the last command, and no `||` before it could have skipped it: the exit code
+  is the check's own.
+- The check is followed by `&&` and exit is 0, with no `||` anywhere and no `;` after it: the
+  check passed, because a failure would have stopped the chain and become its code.
+- Anything else falls back to the output: a test summary, printed compiler or linter errors,
+  or, when piped into `tail`, `head`, `cat` or `tee`, a clean output for compilers, linters,
+  builds and pushes.
+- Otherwise the outcome is unknown, and the claim is unverified with the reason. Unknown is
+  never a pass.
+
+## Staleness counts shell writes
+
+A run is stale when any code file changed after it. That includes edit and write tool calls,
+and shell commands that write files: redirects, `sed -i`, `tee`, `mv`, `cp`, `rm`, package
+installs, formatters, git commands that rewrite the tree, and inline scripts that call a
+file-writing API. Docs never make a run stale, and test files do not make a build stale.
+When a shell command may have changed files we cannot name, the claim is stale with that
+reason. A false stale costs a reviewer a minute; a false verified is the worst failure.
+
+## Checkers grouped by shared logic
+
+`src/check/` has one module per family of claim types, not one per type, so the last-run
+and staleness logic exists once.

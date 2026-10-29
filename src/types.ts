@@ -148,6 +148,44 @@ export interface Claim {
   extractedBy: "pattern" | "llm" | "both";
 }
 
+export const VERDICTS = [
+  "verified",
+  "contradicted",
+  "stale",
+  "unverified",
+  "needs-review",
+] as const;
+
+export type Verdict = (typeof VERDICTS)[number];
+
+/** A pointer to the hard evidence behind a verdict. */
+export type EvidenceRef =
+  | {
+      kind: "run";
+      stepIndex: number;
+      toolId: string;
+      command: string;
+      exitCode: number | null;
+      isSidechain: boolean;
+    }
+  | { kind: "edit"; stepIndex: number; toolId: string; path: string; isSidechain: boolean }
+  | {
+      kind: "diff";
+      path: string;
+      status: FileDiff["status"];
+      added: number;
+      removed: number;
+    };
+
+export interface CheckResult {
+  verdict: Verdict;
+  evidence: EvidenceRef[];
+  /** One plain sentence a reviewer can read. */
+  reason: string;
+}
+
+export type CheckedClaim = Claim & CheckResult;
+
 /** A row in `receipts sessions`: cheap to compute, no full parse. */
 export interface SessionSummary {
   id: string;
