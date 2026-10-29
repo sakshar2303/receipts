@@ -5,6 +5,7 @@ import type { Session, SessionSummary, Step, ToolCall } from "../types.js";
 import { findFinalMessage, orderSteps } from "./build.js";
 import { applyResult } from "./claude-code-results.js";
 import { asArray, asRecord, asString, parseJson, type JsonRecord } from "./json.js";
+import { relativeToCwd } from "./paths.js";
 import { canonicalTool } from "./tools.js";
 import { stripInjectedTags, toTitle } from "./text.js";
 
@@ -28,6 +29,11 @@ export async function readClaudeCodeSession(file: string): Promise<Session> {
     steps.push(...sub.steps);
   }
   const ordered = orderSteps(steps);
+  for (const step of ordered) {
+    for (const call of step.tools) {
+      for (const edit of call.edits) edit.path = relativeToCwd(edit.absPath, main.cwd);
+    }
+  }
   return {
     id: main.sessionId || path.basename(file, ".jsonl"),
     source: "claude-code",
@@ -84,7 +90,9 @@ async function parseFile(
     const rec = asRecord(parseJson(line));
     if (!rec) continue;
     out.sessionId ||= asString(rec.sessionId) ?? "";
-    if (!out.cwd) out.cwd = asString(rec.cwd) ?? "";
+    // The working folder can move mid-session ("relocated" records, or a new
+    // cwd on later lines). The latest one is where the reviewed work lives.
+    out.cwd = asString(rec.relocatedCwd) ?? asString(rec.cwd) ?? out.cwd;
 
     // Only these record types carry the conversation. Others (request blobs,
     // snapshots, queue operations) repeat content and would double count.

@@ -61,6 +61,55 @@ export interface Session {
   finalMessage: FinalMessage | null;
 }
 
+export interface DiffLine {
+  kind: "add" | "del" | "context";
+  text: string;
+  oldLine: number | null;
+  newLine: number | null;
+}
+
+export interface DiffHunk {
+  header: string;
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: DiffLine[];
+}
+
+export interface FileDiff {
+  /** Path after the change, relative to the repo root, forward slashes. */
+  path: string;
+  /** Path before the change, for renames; otherwise equal to path. */
+  oldPath: string;
+  status: "added" | "deleted" | "modified" | "renamed";
+  binary: boolean;
+  added: number;
+  removed: number;
+  hunks: DiffHunk[];
+}
+
+/** Everything the agent changed, from the best source available. */
+export interface ChangeSet {
+  source: "git" | "patch" | "transcript";
+  /** Human-readable compared refs, for example "main...HEAD" or "HEAD...working tree". */
+  label: string;
+  files: FileDiff[];
+  /** Shown to the reader when the source is weaker than a real diff. */
+  notice?: string;
+}
+
+/** One file change taken from the transcript, in timeline order. */
+export interface EditEvent {
+  stepIndex: number;
+  toolId: string;
+  path: string;
+  kind: FileEdit["kind"];
+  added: number;
+  removed: number;
+  isSidechain: boolean;
+}
+
 /** A row in `receipts sessions`: cheap to compute, no full parse. */
 export interface SessionSummary {
   id: string;

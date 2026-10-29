@@ -76,3 +76,22 @@ describe("Claude Code reader", async () => {
     expect(session.finalMessage?.stepIndex).toBe(session.steps.length - 1);
   });
 });
+
+describe("Claude Code reader, relocated session", async () => {
+  const session = await readClaudeCodeSession(
+    path.join(import.meta.dirname, "../../fixtures/claude-code/relocated.jsonl"),
+  );
+
+  it("uses the folder the session moved to and relativises edits against it", () => {
+    expect(session.cwd).toBe("/work/app");
+    expect(session.steps[0]?.tools[0]?.edits).toEqual([
+      {
+        path: "src/index.ts",
+        absPath: "/work/app/src/index.ts",
+        kind: "write",
+        added: 1,
+        removed: 0,
+      },
+    ]);
+  });
+});

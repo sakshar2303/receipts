@@ -60,3 +60,19 @@ Sub-agent steps come from separate files (Claude Code) or child sessions (OpenCo
 steps are merged and stably sorted by timestamp, then renumbered. Staleness checks depend
 on "what happened after what", so one true order matters more than keeping each
 transcript's steps contiguous.
+
+## Default diff range
+
+A receipt is about one session, so the default range tries to cover exactly that session's
+changes. Without `--base`, Receipts compares HEAD to the working tree, plus untracked files.
+If the agent committed, it compares from the merge-base with the default branch (on a
+feature branch) or from the commit HEAD was on when the session started. If the repository
+has commits from after the session ended, the range stops at the session's last commit and
+the receipt shows a notice. Every range is a guess when the repository has moved on, so the
+notice always says how to choose one with `--base` and `--head`.
+
+## Git is spawned, never shelled
+
+Every git call goes through `execFile` with an argument array, `--end-of-options` before
+user-supplied refs, and no external diff or textconv drivers. Output is decoded as UTF-8
+without failing on invalid bytes.

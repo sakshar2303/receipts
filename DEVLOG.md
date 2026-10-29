@@ -95,3 +95,48 @@ ends with `scripts/smoke.mjs`, which runs the built CLI against a real database.
 Timing on real data (Node 25, this machine): the largest Claude Code session (768 steps,
 ~10k lines) parses in 180 ms; all 19 sessions parse in 0.42 s total. `receipts sessions`
 over both sources, with database discovery, takes 0.37 s.
+
+## 2026-10-29 20:53 IST: Milestone 3, diff
+
+Built: a unified diff parser (git and plain `diff -u`, renames, binary files, quoted and
+non-UTF-8 paths, CRLF), a git source that spawns git with argument arrays only, `--diff`
+patch files, a per-step edit timeline, and the not-a-repo fallback that rebuilds an
+approximate diff from the agent's own edit calls with the notice "No git diff available.
+Using the agent's own edit records."
+
+Things that only showed up while building or on real data:
+
+- **`git diff HEAD` misses new files.** Files the agent created are usually untracked, and
+  `git diff <ref>` ignores untracked files. Each untracked file is now diffed against
+  `/dev/null` so it appears as added. Without this, "Created docs/api.md" would have been
+  contradicted on every repository where the agent did not `git add`.
+- **Old sessions compared against today's working tree.** On real data, a past OpenCode
+  session that edited 0 files showed 15 changed files, and one that edited 25 showed 76: the
+  default range ran from the session start to the current working tree, so it swept in every
+  later session's work. When commits exist after the session's last step, the range now ends
+  at the last commit made before the session ended, and the receipt says so. For a session
+  that never committed, the range stays HEAD to working tree with a warning that the
+  repository has moved on. After the fix those two sessions show 2 and 34 files.
+- **The working folder moves mid-session.** A Claude Code session can start in one folder
+  and be moved to another (`relocated` records, and a new `cwd` on later lines). The
+  reader took the first `cwd`, so 63 edits in one real session looked like they were
+  outside the project and no git diff was found. It now uses the latest folder and
+  relativises every edit against it. That session now gets a real git diff.
+- **The diff has files the edit records do not.** Even with the right range, git shows more
+  changed files than the transcript's edit and write calls (for example 56 against 50, and
+  34 against 25). The extra files were written by shell commands (heredocs, `sed -i`,
+  package installs). So the edit timeline alone undercounts edits. The staleness checks in
+  milestone 5 must also treat file-writing shell commands as possible edits, or "tests
+  pass" could be marked verified after a `sed -i` that changed code.
+- **`git commit-tree` is not a commit.** The commit detector first matched it; it now needs
+  `commit` as a whole word.
+
+Default range when no `--base` is given:
+
+1. The agent never ran a successful `git commit`: HEAD to working tree.
+2. It committed on a feature branch: merge-base with the default branch (origin's HEAD,
+   else main or master) to working tree.
+3. It committed on the default branch: the parent of the oldest commit made since the session
+   started to working tree; the empty tree if that commit is the repository's first.
+4. In cases 2 and 3, if commits exist after the session ended, the range ends at the last
+   commit made before the session ended.

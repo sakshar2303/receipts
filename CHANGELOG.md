@@ -14,3 +14,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sessions, normalised into one session model.
 - Session discovery, including OpenCode engines embedded in other apps, and
   `receipts sessions`.
+- Change sets from git (including untracked files), from a `--diff` patch, or from the
+  agent's own edit records when there is no repository, plus a per-step edit timeline.
