@@ -91,6 +91,7 @@ h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; overflow-wrap: anywhere
 .counter:hover .label, .counter[aria-pressed="true"] .label { color: var(--ink); }
 .counter[aria-pressed="true"] { box-shadow: inset 0 -2px 0 currentColor; }
 .counter .label { font-size: 12px; color: var(--muted); }
+.counter .glyph { color: var(--v); }
 .counter[data-v] .n { color: var(--v); }
 .summary { font-family: var(--serif); font-size: 18px; line-height: 1.5; margin: 24px 0 8px; max-width: 72ch; }
 .notices { margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
