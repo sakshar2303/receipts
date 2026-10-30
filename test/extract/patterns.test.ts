@@ -106,6 +106,11 @@ describe("pattern extractor", () => {
     expect(behaviour?.text).toBe("the parser now handles quoted commas");
   });
 
+  it("does not take a following word for a package name", () => {
+    expect(types("Ollama installed hai, lekin sirf gemma3 hai.")).toEqual([]);
+    expect(types("Dependencies installed successfully.")).toEqual([]);
+  });
+
   it("does not take version numbers for paths", () => {
     expect(types("Updated to v1.2.")).toEqual([]);
     expect(types("`Step.userText` added.")).toEqual([]);

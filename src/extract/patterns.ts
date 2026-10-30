@@ -162,6 +162,8 @@ export function extractPatternClaims(message: string): DraftClaim[] {
         const clause = segment.text.slice(0, m.index).split(CLAUSE_BREAK).pop() ?? "";
         if (NEGATED.test(clause) || /\?\s*$/.test(segment.text)) continue;
         if (m.groups?.path && !looksLikeFile(m.groups.path)) continue;
+        if (m.groups?.pkg && NOT_A_PACKAGE.has(m.groups.pkg.toLowerCase().replace(/[.]+$/, "")))
+          continue;
         inSegment.push({
           text: message.slice(start, end),
           type: pattern.type,
@@ -187,6 +189,35 @@ function clauseStart(text: string, index: number): number {
   while (/\s/.test(text[start] ?? "") && start < index) start++;
   return start;
 }
+
+// Words that follow "installed" without naming a package: "installed locally",
+// and in a Hinglish message, "Ollama installed hai" ("Ollama is installed").
+const NOT_A_PACKAGE = new Set([
+  "it",
+  "them",
+  "this",
+  "that",
+  "and",
+  "but",
+  "now",
+  "already",
+  "locally",
+  "globally",
+  "successfully",
+  "correctly",
+  "fine",
+  "everything",
+  "all",
+  "deps",
+  "dependencies",
+  "packages",
+  "hai",
+  "hain",
+  "tha",
+  "the",
+  "a",
+  "an",
+]);
 
 function subjectOf(type: ClaimType, groups: Record<string, string | undefined>): string {
   const raw = groups.path ?? groups.pkg ?? groups.cmd ?? groups.phrase ?? "";
