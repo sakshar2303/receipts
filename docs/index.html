@@ -3,712 +3,588 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>Receipt: Handle empty input and quoted commas in the CSV parser</title>
+<title>Receipts: check what your coding agent claims</title>
+<meta name="description" content="Your agent says it's done. Receipts checks every claim in its final message against what actually ran: exit codes, output and the git diff.">
 <style>
-:root {
-  color-scheme: light;
-  --bg: #fbfaf7;
-  --surface: #f3f1ec;
-  --ink: #161514;
-  --muted: #6b665d;
-  --rule: #e3ded3;
-  --verified: #2f6b3b;
-  --contradicted: #b3261e;
-  --stale: #875c00;
-  --unverified: #5b6472;
-  --review: #5a4a9e;
-  --add-bg: #e8f1e8;
-  --del-bg: #f8e6e4;
-  --focus: #161514;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --serif: "Iowan Old Style", "Charter", "Bitstream Charter", Georgia, "Times New Roman", serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+:root{
+  --paper:#fbfaf7;--ink:#161514;--muted:#6b665d;--rule:#e3ded3;--night:#121211;--night-2:#1b1a18;--night-rule:#2b2925;--chalk:#e9e6df;--chalk-muted:#a19b90;
+  --v:#2f6b3b;--c:#b3261e;--s:#9a6a00;--u:#5b6472;--n:#5a4a9e;
+  --vd:#79b886;--cd:#ef8a83;--sd:#e0b552;--ud:#a3acb9;--nd:#a99be6;
+  --serif:"Iowan Old Style","Charter","Georgia",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","Menlo","Cascadia Mono",monospace;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #121211; --surface: #1b1a18; --ink: #e9e6df; --muted: #a19b90; --rule: #2b2925;
-    --verified: #79b886; --contradicted: #ef8a83; --stale: #e0b552; --unverified: #a3acb9;
-    --review: #a99be6; --add-bg: #1c2a1e; --del-bg: #2e1c1a; --focus: #e9e6df;
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #121211; --surface: #1b1a18; --ink: #e9e6df; --muted: #a19b90; --rule: #2b2925;
-  --verified: #79b886; --contradicted: #ef8a83; --stale: #e0b552; --unverified: #a3acb9;
-  --review: #a99be6; --add-bg: #1c2a1e; --del-bg: #2e1c1a; --focus: #e9e6df;
-}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;background-image:var(--grain);pointer-events:none;z-index:1000;opacity:.6}
+a{color:inherit}
+code,kbd,.mono{font-family:var(--mono)}
+.wrap{max-width:1160px;margin:0 auto;padding:0 32px}
+.eyebrow{font:600 12px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:-.01em;margin:0}
+h2{font-size:clamp(34px,4.6vw,56px);line-height:1.08}
+.lead{font-size:20px;color:var(--muted);max-width:640px}
+.num{font-variant-numeric:tabular-nums}
 
-*, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  margin: 0; background: var(--bg); color: var(--ink);
-  font: 15px/1.6 var(--sans); font-variant-numeric: tabular-nums;
-}
-.wrap { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
-h1, h2 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.005em; }
-h2 { font-size: 18px; margin: 0 0 16px; }
-code, pre, .mono { font-family: var(--mono); font-size: 13px; }
-pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
-button { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-[hidden] { display: none !important; }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Scroll progress: a strip of receipt paper feeding across the top. */
+.progress{position:fixed;top:0;left:0;height:3px;width:100%;background:var(--c);transform-origin:0 50%;transform:scaleX(0);z-index:999}
+@supports (animation-timeline: scroll()){.progress{animation:feed linear both;animation-timeline:scroll(root)}@keyframes feed{to{transform:scaleX(1)}}}
 
-/* Masthead */
-.masthead { padding-top: 40px; }
-.masthead-row { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; }
-.eyebrow { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 8px; }
-.eyebrow span + span::before { content: "·"; margin: 0 8px; }
-h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; overflow-wrap: anywhere; }
-.refs { font-family: var(--mono); font-size: 13px; color: var(--muted); margin: 0; }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; position: relative; }
-.btn {
-  border: 1px solid var(--rule); background: var(--bg); border-radius: 4px;
-  padding: 4px 12px; font-size: 13px; cursor: pointer; white-space: nowrap;
-}
-.btn:hover { border-color: var(--muted); }
-.btn[aria-pressed="true"] { border-color: var(--ink); }
-/* A row of punched holes under the header, like the torn top of a receipt. */
-.perforation {
-  height: 8px; margin-top: 32px; border-top: 1px dashed var(--rule);
-  background-image: radial-gradient(circle at 4px 0, var(--rule) 1.5px, transparent 2px);
-  background-size: 12px 8px; background-repeat: repeat-x;
-}
-.popover {
-  position: absolute; right: 0; top: 36px; z-index: 5; width: 280px;
-  background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 16px;
-  font-size: 13px; text-align: left;
-}
-.popover dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 0; }
-.popover dt { font-family: var(--mono); }
-.popover dd { margin: 0; color: var(--muted); }
+/* Navigation */
+nav.top{position:fixed;top:3px;left:0;right:0;z-index:50;transition:background .3s,border-color .3s;border-bottom:1px solid transparent}
+nav.top.scrolled{background:color-mix(in srgb,var(--night) 92%,transparent);border-color:var(--night-rule);backdrop-filter:saturate(1.2) blur(6px)}
+nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{font:600 20px var(--serif);color:var(--chalk);text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand i{width:14px;height:18px;background:var(--chalk);display:inline-block;-webkit-mask:linear-gradient(135deg,transparent 3px,#000 0) 0 100%/6px 6px repeat-x,linear-gradient(#000,#000) 0 0/100% calc(100% - 3px) no-repeat;mask:linear-gradient(135deg,transparent 3px,#000 0) 0 100%/6px 6px repeat-x,linear-gradient(#000,#000) 0 0/100% calc(100% - 3px) no-repeat}
+nav.top ul{display:flex;gap:28px;list-style:none;margin:0;padding:0}
+nav.top ul a{color:var(--chalk-muted);text-decoration:none;font:500 14px var(--sans)}
+nav.top ul a:hover{color:var(--chalk)}
 
-/* Verdict strip */
-.strip { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--rule); margin-top: 24px; }
-.counter {
-  display: flex; flex-direction: column; gap: 4px; align-items: flex-start; text-align: left;
-  background: none; border: 0; border-right: 1px solid var(--rule); padding: 16px; cursor: pointer;
-}
-.counter:last-child { border-right: 0; }
-.counter .n { font-family: var(--mono); font-size: 32px; line-height: 1; }
-.counter:hover .label, .counter[aria-pressed="true"] .label { color: var(--ink); }
-.counter[aria-pressed="true"] { box-shadow: inset 0 -2px 0 currentColor; }
-.counter .label { font-size: 12px; color: var(--muted); }
-.counter .glyph { color: var(--v); }
-.counter[data-v] .n { color: var(--v); }
-.summary { font-family: var(--serif); font-size: 18px; line-height: 1.5; margin: 24px 0 8px; max-width: 72ch; }
-.notices { margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
-.notices li { border-left: 2px solid var(--rule); padding-left: 12px; margin-top: 8px; }
+/* Hero */
+.hero{background:var(--night);color:var(--chalk);min-height:100vh;padding:120px 0 80px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:14px;background:var(--paper);-webkit-mask:linear-gradient(135deg,#000 7px,transparent 0) 0 0/14px 14px repeat-x,linear-gradient(225deg,#000 7px,transparent 0) 0 0/14px 14px repeat-x;mask:linear-gradient(135deg,#000 7px,transparent 0) 0 0/14px 14px repeat-x,linear-gradient(225deg,#000 7px,transparent 0) 0 0/14px 14px repeat-x}
+.wall{position:absolute;inset:-20% -5% auto;height:160%;font:12px/1.9 var(--mono);color:var(--chalk);opacity:.07;white-space:pre;overflow:hidden;pointer-events:none;-webkit-mask:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent)}
+.wall div{animation:drift 60s linear infinite}
+@keyframes drift{to{transform:translateY(-50%)}}
+.printer{perspective:900px}
+.printer .tilt{position:relative;transition:transform .2s ease-out;transform-style:preserve-3d}
+.printer .stamp{background:rgba(251,250,247,.6)}
+.hero .wrap{position:relative;z-index:1;display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
+.hero .eyebrow{color:var(--chalk-muted)}
+.hero h1{font-size:clamp(46px,6.6vw,88px);line-height:1.02;margin:22px 0 26px}
+.hero h1 .line{display:block;overflow:hidden}
+.hero h1 .line span{display:block;transform:translateY(105%);animation:rise .9s cubic-bezier(.2,.8,.2,1) forwards}
+.hero h1 .line:nth-child(2) span{animation-delay:.18s}
+.hero h1 .red{color:var(--cd)}
+@keyframes rise{to{transform:none}}
+.hero p.lead{color:var(--chalk-muted);opacity:0;animation:fade .8s .6s forwards}
+@keyframes fade{to{opacity:1}}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px;opacity:0;animation:fade .8s .9s forwards}
+.copy{display:flex;align-items:center;gap:14px;background:var(--night-2);border:1px solid var(--night-rule);border-radius:4px;padding:14px 16px;font:15px var(--mono);color:var(--chalk);cursor:pointer;transition:border-color .2s}
+.copy:hover{border-color:var(--chalk-muted)}
+.copy .dollar{color:var(--chalk-muted)}
+.copy .hint{font:600 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--chalk-muted);border-left:1px solid var(--night-rule);padding-left:14px}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 20px;border-radius:4px;font:600 15px var(--sans);text-decoration:none;border:1px solid currentColor;transition:transform .15s,background .2s,color .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.solid{background:var(--chalk);color:var(--night);border-color:var(--chalk)}
+.btn.ghost{color:var(--chalk)}
+.btn .arrow{transition:transform .2s}.btn:hover .arrow{transform:translateX(4px)}
 
-/* Verdict tags: a word in small caps plus a shape, never colour alone. */
-[data-v="verified"] { --v: var(--verified); }
-[data-v="contradicted"] { --v: var(--contradicted); }
-[data-v="stale"] { --v: var(--stale); }
-[data-v="unverified"] { --v: var(--unverified); }
-[data-v="needs-review"] { --v: var(--review); }
-.tag {
-  display: inline-flex; align-items: center; gap: 8px; color: var(--v);
-  font-size: 12px; font-variant: small-caps; text-transform: lowercase; letter-spacing: 0.08em; white-space: nowrap;
-}
-.glyph { display: inline-block; flex: none; width: 10px; height: 10px; background: currentColor; }
-[data-v="verified"] .glyph { border-radius: 50%; }
-[data-v="contradicted"] .glyph {
-  clip-path: polygon(20% 0, 50% 30%, 80% 0, 100% 20%, 70% 50%, 100% 80%, 80% 100%, 50% 70%, 20% 100%, 0 80%, 30% 50%, 0 20%);
-}
-[data-v="stale"] .glyph { height: 5px; border-radius: 5px 5px 0 0; margin-bottom: 5px; }
-[data-v="unverified"] .glyph { background: none; border: 1.5px solid currentColor; border-radius: 50%; }
-[data-v="needs-review"] .glyph { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+/* The receipt printer */
+.printer{position:relative;justify-self:center;width:min(420px,100%)}
+.slot{height:22px;background:#050505;border:1px solid var(--night-rule);border-radius:4px 4px 0 0;position:relative;z-index:2;box-shadow:inset 0 -6px 10px #000}
+.slot::after{content:"";position:absolute;left:18px;right:18px;bottom:6px;height:3px;background:#000;border-radius:2px}
+.feed{overflow:hidden;margin:0 14px;position:relative;z-index:1}
+.receipt{background:var(--paper);background-image:var(--grain);color:var(--ink);padding:26px 26px 34px;font:13px/1.75 var(--mono);transform:translateY(-100%);animation:print 2.6s steps(26,end) .5s forwards;position:relative}
+.receipt::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:var(--paper);-webkit-mask:linear-gradient(135deg,#000 5px,transparent 0) 0 0/10px 10px repeat-x,linear-gradient(225deg,#000 5px,transparent 0) 0 0/10px 10px repeat-x;mask:linear-gradient(135deg,#000 5px,transparent 0) 0 0/10px 10px repeat-x,linear-gradient(225deg,#000 5px,transparent 0) 0 0/10px 10px repeat-x}
+@keyframes print{to{transform:none}}
+.receipt.shake{animation:print 2.6s steps(26,end) .5s forwards,shake .35s 3.25s,shake .35s 3.75s,shake .35s 4.25s}
+@keyframes shake{25%{translate:-2px 1px}50%{translate:2px -1px}75%{translate:-1px 0}}
+.receipt .head{text-align:center;border-bottom:1px dashed #b9b2a5;padding-bottom:12px;margin-bottom:12px}
+.receipt .head b{font:700 18px var(--mono);letter-spacing:.2em;display:block}
+.receipt .row{display:flex;gap:6px;position:relative}
+.receipt .row .t{flex:none}
+.receipt .row .dots{flex:1;border-bottom:1px dotted #a49c8e;transform:translateY(-6px)}
+.receipt .row .v{flex:none;font-weight:700;letter-spacing:.06em}
+.receipt .v.ok{color:var(--v)}.receipt .v.bad{color:var(--c)}.receipt .v.stale{color:var(--s)}.receipt .v.unv{color:var(--u)}.receipt .v.rev{color:var(--n)}
+.receipt .total{border-top:1px dashed #b9b2a5;margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;font-weight:700}
+.receipt .barcode{height:38px;margin-top:16px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 8px,var(--ink) 8px 11px,transparent 11px 12px)}
+.stamp{position:absolute;font:800 22px/1 var(--mono);letter-spacing:.12em;padding:8px 12px;border:3px solid currentColor;border-radius:4px;text-transform:uppercase;opacity:0;transform:scale(2.6) rotate(-14deg);background:color-mix(in srgb,var(--paper) 55%,transparent);pointer-events:none;box-shadow:inset 0 0 0 1px currentColor;z-index:3}
+.printer .stamp{animation:slam .38s cubic-bezier(.3,1.6,.5,1) forwards}
+.printer .s1{color:var(--c);top:150px;right:-10px;animation-delay:3.2s;--r:-12deg}
+.printer .s2{color:var(--s);top:250px;left:-6px;animation-delay:3.7s;--r:8deg}
+.printer .s3{color:var(--v);top:330px;right:6px;animation-delay:4.2s;--r:-5deg}
+@keyframes slam{0%{opacity:0;transform:scale(2.6) rotate(var(--r,-10deg))}60%{opacity:.95}100%{opacity:.9;transform:scale(1) rotate(var(--r,-10deg))}}
 
-/* Two panes */
-.panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px; margin-top: 40px; }
-section { margin-top: 48px; }
-.panes section { margin-top: 0; }
-.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--rule); margin-bottom: 16px; }
-.section-head h2 { margin-bottom: 8px; }
-.section-head .meta { font-size: 12px; color: var(--muted); }
-.message { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; margin: 0; }
-.span { background: none; color: inherit; text-decoration: underline 2px var(--v); text-underline-offset: 3px; cursor: pointer; border-radius: 2px; }
-.span.is-hot { background: var(--surface); }
-.filter { width: 100%; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); padding: 4px 8px; font-size: 13px; margin-bottom: 8px; }
-.claims { list-style: none; margin: 0; padding: 0; }
-.claim { border-bottom: 1px solid var(--rule); padding: 12px 0; }
-.claim-head { display: grid; grid-template-columns: 120px 1fr; gap: 16px; width: 100%; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; align-items: baseline; }
-.claim-text { font-size: 15px; overflow-wrap: anywhere; }
-.claim .reason, .claim .chips { margin: 4px 0 0 136px; }
-.reason { font-size: 13px; color: var(--muted); }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; }
-.chip { font-family: var(--mono); font-size: 12px; color: var(--muted); border: 1px solid var(--rule); border-radius: 4px; padding: 0 8px; }
-.claim.is-selected { box-shadow: inset 2px 0 0 var(--ink); padding-left: 12px; }
-.claim.is-hot .claim-text { text-decoration: underline 1px var(--v); }
-.badge { font-size: 12px; color: var(--muted); border: 1px solid var(--rule); border-radius: 4px; padding: 0 4px; margin-left: 8px; }
-.empty { color: var(--muted); font-size: 13px; }
+/* Sections */
+section{padding:128px 0;position:relative}
+.reveal{opacity:0;transform:translateY(40px);transition:opacity .9s cubic-bezier(.2,.8,.2,1),transform .9s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}.d5{transition-delay:.5s}
 
-/* Evidence */
-.evidence { margin: 12px 0 0 136px; border-top: 1px dashed var(--rule); padding-top: 12px; display: grid; gap: 16px; }
-.ev-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; font-size: 13px; }
-.ev-head strong { font-weight: 600; }
-.cmd { background: var(--surface); border-radius: 4px; padding: 8px 12px; margin-top: 8px; }
-.out { border: 1px solid var(--rule); border-radius: 4px; padding: 8px 12px; margin-top: 8px; max-height: 320px; overflow: auto; font-size: 12px; color: var(--muted); }
-.out .hl { color: var(--ink); background: var(--surface); }
-.link { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: 13px; color: var(--ink); }
+/* Marquee of claims agents make */
+.marquee{background:var(--ink);color:var(--paper);overflow:hidden;padding:18px 0;border-block:1px solid #000}
+.marquee .track{display:flex;gap:48px;width:max-content;animation:marq 38s linear infinite;font:500 18px var(--mono)}
+.marquee span{display:flex;gap:14px;align-items:center;white-space:nowrap}
+.marquee b{font:800 12px var(--mono);letter-spacing:.14em;padding:4px 8px;border:2px solid currentColor;border-radius:3px}
+@keyframes marq{to{transform:translateX(-50%)}}
 
-/* Diffs */
-.diff { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; margin-top: 8px; }
-.diff td { padding: 0 8px; vertical-align: top; white-space: pre-wrap; word-break: break-word; }
-.diff .ln { width: 1%; color: var(--muted); text-align: right; user-select: none; white-space: nowrap; }
-.diff .sign { width: 1%; user-select: none; color: var(--muted); }
-.diff tr.add td { background: var(--add-bg); }
-.diff tr.del td { background: var(--del-bg); }
-.diff tr.hunk td { color: var(--muted); padding-top: 8px; }
+/* Story: a pinned final message, claims checked one by one as you scroll */
+.story{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start;margin-top:64px}
+.pin{position:sticky;top:110px}
+.msg{background:#fff;border:1px solid var(--rule);border-radius:4px;padding:28px 30px;font:16px/1.85 var(--sans);position:relative}
+.msg .who{font:600 12px var(--mono);letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:14px;display:flex;justify-content:space-between}
+.msg mark{background:none;color:inherit;position:relative;transition:color .3s}
+.msg mark::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:3px;background:var(--hl,var(--ink));transform:scaleX(0);transform-origin:0 50%;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.msg mark.on::after{transform:scaleX(1)}
+.msg mark.on{color:var(--hl)}
+.msg .stamp{right:22px;bottom:22px;transform:scale(2.4) rotate(-10deg)}
+.msg .stamp.on{animation:slam .38s cubic-bezier(.3,1.6,.5,1) forwards}
+.steps .step{min-height:72vh;display:flex;flex-direction:column;justify-content:center;opacity:.25;transition:opacity .5s}
+.steps .step.active{opacity:1}
+.step .tag{font:800 13px var(--mono);letter-spacing:.16em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px}
+.step h3{font-size:34px;line-height:1.15;margin:12px 0 14px}
+.step p{color:var(--muted);margin:0 0 18px;max-width:460px}
+.ev{font:14px/1.6 var(--mono);background:var(--night);color:var(--chalk);border-radius:4px;padding:16px 18px;max-width:460px}
+.ev .k{color:var(--chalk-muted)}.ev .r{color:var(--cd)}.ev .g{color:var(--vd)}.ev .y{color:var(--sd)}
 
 /* Timeline */
-.timeline { position: relative; padding: 16px 0 24px; }
-.lane { position: relative; height: 12px; }
-/* Each step owns an equal slot; the tick is a thin line centred in it, so a
-   short session does not turn into blocks and markers line up with ticks. */
-.ticks { display: flex; align-items: flex-end; height: 32px; cursor: crosshair; border-bottom: 1px solid var(--rule); }
-.tick { flex: 1 1 0; min-width: 1px; height: 12px; display: flex; justify-content: center; }
-.tick::before { content: ""; width: min(100%, 3px); height: 100%; background: var(--rule); }
-.tick.k-run { height: 24px; }
-.tick.k-run::before { background: var(--muted); }
-.tick.k-edit, .tick.k-write { height: 18px; }
-.tick.k-edit::before, .tick.k-write::before { background: var(--ink); }
-.tick.side::before { opacity: 0.55; }
-.tick.is-hot { height: 32px; }
-.tick.is-hot::before { background: var(--ink); width: min(100%, 5px); }
-.mark { position: absolute; top: 2px; width: 8px; height: 8px; margin-left: -4px; }
-.mark[data-v] { background: var(--v); border-radius: 50%; }
-.mark[data-v="contradicted"] { border-radius: 0; clip-path: polygon(20% 0, 50% 30%, 80% 0, 100% 20%, 70% 50%, 100% 80%, 80% 100%, 50% 70%, 20% 100%, 0 80%, 30% 50%, 0 20%); }
-.mark.edit { background: var(--ink); border-radius: 0; width: 4px; margin-left: -2px; }
-.mark.is-hot { outline: 2px solid var(--ink); outline-offset: 2px; }
-.readout { font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 20px; margin-top: 8px; overflow-wrap: anywhere; }
-.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--muted); margin: 8px 0 0; padding: 0; list-style: none; }
-.legend span { display: inline-block; width: 8px; height: 8px; margin-right: 8px; vertical-align: 0; }
+.dark{background:var(--night);color:var(--chalk)}
+.dark .eyebrow,.dark .lead{color:var(--chalk-muted)}
+.tl{margin-top:72px;position:relative}
+.tl svg{width:100%;height:auto;overflow:visible}
+.tl .track{stroke:var(--night-rule);stroke-width:2}
+.tl .draw{stroke:var(--chalk);stroke-width:2;stroke-dasharray:1000;stroke-dashoffset:1000;transition:stroke-dashoffset 2.4s cubic-bezier(.6,0,.2,1)}
+.tl.in .draw{stroke-dashoffset:0}
+.tl .tick{stroke:#4a4741;stroke-width:2}
+.tl .mk{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(.2);transition:opacity .4s,transform .5s cubic-bezier(.3,1.7,.5,1)}
+.tl.in .mk{opacity:1;transform:none}
+.tl text{font:13px var(--mono);fill:var(--chalk-muted)}
+.tl .lbl{font:600 14px var(--sans);fill:var(--chalk)}
+.tl .bracket{opacity:0;transition:opacity .6s 2.6s}
+.tl.in .bracket{opacity:1}
+.verdict-line{margin-top:40px;font:600 clamp(24px,3vw,34px)/1.3 var(--serif);opacity:0;transition:opacity .8s 3s}
+.tl.in~.verdict-line{opacity:1}
+.verdict-line em{font-style:normal;color:var(--sd)}
 
-/* Tables */
-table.ledger { width: 100%; border-collapse: collapse; font-size: 13px; }
-/* Child selectors only: diffs nest tables inside ledger cells. */
-.ledger > thead > tr > th { text-align: left; font-weight: 600; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--rule); padding: 8px; }
-.ledger > tbody > tr > td { border-bottom: 1px solid var(--rule); padding: 8px; vertical-align: top; }
-.ledger .num { text-align: right; font-family: var(--mono); white-space: nowrap; }
-.ledger .path { font-family: var(--mono); overflow-wrap: break-word; }
-.ledger > tbody > tr.detail > td { padding: 0 8px 16px; }
-.toggle { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
-.toggle::before { content: "+"; display: inline-block; width: 16px; font-family: var(--mono); color: var(--muted); }
-.toggle[aria-expanded="true"]::before { content: "\2212"; }
-.sev { font-variant: small-caps; text-transform: lowercase; letter-spacing: 0.08em; font-size: 12px; }
-.sev-high { color: var(--contradicted); }
-.sev-medium { color: var(--stale); }
-.sev-low { color: var(--unverified); }
+/* Flags */
+.flags{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center;margin-top:56px}
+.diff{background:#fff;border:1px solid var(--rule);border-radius:4px;overflow:hidden;font:14px/1.9 var(--mono)}
+.diff .fn{padding:10px 16px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:13px;display:flex;justify-content:space-between}
+.diff .ln{padding:0 16px;white-space:pre}
+.diff .ln i{font-style:normal;color:#b9b2a5;width:24px;text-align:right;display:inline-block;margin-right:16px}
+.diff .del{background:#fbe9e7;color:#7a1c16}
+.diff .add{background:#e8f3ea;color:#1f4a28}
+.diff .add b{background:#f2c9c4;color:var(--c);border-radius:2px;padding:0 2px;transition:background 1s}
+.flagchips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{font:600 13px var(--mono);border:1px solid var(--rule);border-radius:4px;padding:8px 12px;background:#fff;display:flex;gap:10px;align-items:center;opacity:0;transform:translateY(16px) rotate(-2deg);transition:opacity .5s,transform .6s cubic-bezier(.3,1.6,.5,1)}
+.chip em{font-style:normal;font-size:11px;letter-spacing:.12em;padding:2px 6px;border-radius:2px;color:#fff}
+.chip em.h{background:var(--c)}.chip em.m{background:var(--s)}.chip em.l{background:var(--u)}
+.in .chip{opacity:1;transform:none}
 
-footer { border-top: 1px solid var(--rule); margin-top: 64px; padding: 24px 0 48px; font-size: 12px; color: var(--muted); }
-footer p { margin: 0; }
+/* Verdicts as stamps */
+.stamps{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:64px}
+.vcard{border:1px solid var(--rule);border-radius:4px;background:#fff;padding:28px 22px 24px;min-height:250px;display:flex;flex-direction:column;position:relative;overflow:hidden;transition:transform .25s,border-color .25s}
+.vcard:hover{transform:translateY(-6px);border-color:var(--col)}
+.vcard .big{font:800 15px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--col);border:3px solid currentColor;border-radius:4px;padding:8px 10px;align-self:flex-start;transform:rotate(-6deg) scale(2.2);opacity:0;transition:transform .45s cubic-bezier(.3,1.7,.5,1),opacity .2s}
+.in .vcard .big{transform:rotate(-6deg);opacity:1}
+.vcard:hover .big{transform:rotate(0) scale(1.06)}
+.vcard p{margin:22px 0 10px;font-size:15px}
+.vcard small{color:var(--muted);font:13px/1.5 var(--mono);margin-top:auto}
 
-/* On wide screens the message stays in view while the claim list scrolls. */
-@media (min-width: 1100px) {
-  .panes > section:first-child { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow: auto; }
+/* Numbers */
+@property --n{syntax:"<integer>";inherits:false;initial-value:0}
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:64px;border-top:1px solid var(--night-rule)}
+.nums div{padding:34px 24px 10px 0;border-right:1px solid var(--night-rule)}
+.nums div:last-child{border:0}
+.count{font:600 clamp(52px,6vw,84px)/1 var(--serif);counter-reset:n var(--n);transition:--n 2.2s cubic-bezier(.2,.8,.2,1)}
+.count::before{content:counter(n)}
+.count.pre::before{content:"<" counter(n)}
+.count.post::after{content:var(--suf,"")}
+.nums.in .count{--n:var(--to)}
+.nums p{color:var(--chalk-muted);margin:12px 0 0;font-size:15px;max-width:220px}
+.zero{color:var(--vd)}
+.evalt{width:100%;border-collapse:collapse;margin-top:64px;font-size:15px}
+.evalt th,.evalt td{padding:14px 12px;border-bottom:1px solid var(--night-rule);text-align:right}
+.evalt th:first-child,.evalt td:first-child{text-align:left}
+.evalt th{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-muted)}
+.evalt td{font-family:var(--mono)}
+.bar{display:inline-block;height:6px;background:var(--chalk);vertical-align:middle;margin-right:10px;width:0;transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+.in .bar{width:var(--w)}
+.note{color:var(--chalk-muted);font-size:14px;margin-top:20px;max-width:760px}
+
+/* Where it runs */
+.places{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;margin-top:56px}
+.place{border:1px solid var(--rule);border-radius:4px;background:#fff;padding:26px}
+.place h3{font-size:24px;margin-bottom:6px}
+.place p{color:var(--muted);margin:0 0 16px;font-size:15px}
+pre.code{margin:0;background:var(--night);color:var(--chalk);border-radius:4px;padding:16px 18px;font:13.5px/1.65 var(--mono);overflow-x:auto}
+pre.code .c{color:var(--chalk-muted)}pre.code .r{color:var(--cd)}pre.code .g{color:var(--vd)}
+
+/* Video */
+.video{margin-top:56px;border-radius:4px;overflow:hidden;border:1px solid var(--night-rule);background:#000;aspect-ratio:16/10}
+.video video{width:100%;height:100%;display:block}
+
+/* Final receipt */
+.final{text-align:center}
+.final .receipt{transform:none;animation:none;max-width:560px;margin:56px auto 0;text-align:left;font-size:15px}
+.final h2{max-width:900px;margin:0 auto}
+.final .cta{justify-content:center;opacity:1;animation:none}
+.final .copy{background:var(--night);border-color:var(--night)}
+.final .btn.solid{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.final .btn.ghost{color:var(--ink)}
+footer{border-top:1px solid var(--rule);padding:32px 0 48px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,40px);opacity:0;background:var(--ink);color:var(--paper);font:600 14px var(--sans);padding:12px 18px;border-radius:4px;transition:all .3s;z-index:1001}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-color-scheme:dark){
+  :root{--paper:#121211;--ink:#e9e6df;--muted:#a19b90;--rule:#2b2925;--v:#79b886;--c:#ef8a83;--s:#e0b552;--u:#a3acb9;--n:#a99be6}
+  .msg,.diff,.vcard,.place,.chip{background:#1b1a18}
+  .receipt{--ink:#161514;--paper:#fbfaf7;background:#fbfaf7;color:#161514}
+  .ev{background:#1b1a18;border:1px solid var(--rule)}
+  .receipt .v.ok{color:#2f6b3b}.receipt .v.bad{color:#b3261e}.receipt .v.stale{color:#9a6a00}.receipt .v.unv{color:#5b6472}.receipt .v.rev{color:#5a4a9e}
+  .diff .del{background:#3a1b18;color:#f3b9b3}.diff .add{background:#17301d;color:#b8e0c0}
+  .marquee{background:#e9e6df;color:#121211}
+  .final .copy{background:#1b1a18;border-color:var(--rule)}
+  .final .btn.solid{background:#e9e6df;color:#121211;border-color:#e9e6df}
+  .stamp{mix-blend-mode:normal}
+  .printer .s1{color:#b3261e}.printer .s2{color:#9a6a00}.printer .s3{color:#2f6b3b}
 }
-@media (max-width: 1099px) {
-  .panes { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+@media (max-width:900px){
+  .hero .wrap,.story,.flags{grid-template-columns:1fr}
+  .pin{position:relative;top:0}
+  .steps .step{min-height:auto;padding:40px 0;opacity:1}
+  .stamps{grid-template-columns:1fr 1fr}
+  .nums{grid-template-columns:1fr 1fr}
+  .nums div{border-right:0;border-bottom:1px solid var(--night-rule)}
+  .places{grid-template-columns:1fr}
+  nav.top ul{display:none}
+  section{padding:88px 0}
+  .wrap{padding:0 20px}
+  .copy{font-size:13px;max-width:100%;overflow-x:auto}
+  .bar{display:none}
+  .evalt th,.evalt td{padding:10px 6px;font-size:13px}
+  .diff{overflow-x:auto}
 }
-@media (max-width: 759px) {
-  .wrap { padding: 0 16px; }
-  .masthead { padding-top: 24px; }
-  .masthead-row { flex-direction: column; }
-  .actions { justify-content: flex-start; }
-  .popover { left: 0; right: auto; }
-  h1 { font-size: 24px; }
-  /* Five narrow columns cannot hold "contradicted"; on a phone the strip becomes a ledger. */
-  .strip { grid-template-columns: minmax(0, 1fr); border-bottom: 0; border-top: 1px solid var(--rule); }
-  .counter { flex-direction: row; align-items: center; gap: 16px; padding: 8px 0; border-right: 0; border-bottom: 1px solid var(--rule); }
-  .counter .n { font-size: 24px; min-width: 2ch; text-align: right; }
-  .counter[aria-pressed="true"] { box-shadow: inset 2px 0 0 currentColor; padding-left: 8px; }
-  .claim-head { grid-template-columns: minmax(0, 1fr); gap: 4px; }
-  .claim .reason, .claim .chips, .evidence { margin-left: 0; }
-  .ledger .hide-sm { display: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important;transition-delay:0s!important}
+  .reveal{opacity:1;transform:none}
+  .marquee .track{animation:none}
 }
 </style>
 </head>
 <body>
-<header class="masthead">
-  <div class="wrap masthead-row">
+<div class="progress" aria-hidden="true"></div>
+
+<nav class="top" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><i aria-hidden="true"></i>Receipts</a>
+    <ul>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#verdicts">Verdicts</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#demo">Demo</a></li>
+      <li><a href="report.html">Live report</a></li>
+      <li><a href="https://github.com/sakshar2303/receipts">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wall" aria-hidden="true"><div id="wall"></div></div>
+  <div class="wrap">
     <div>
-      <p class="eyebrow"><span>Receipt</span><span>Claude Code</span><span>demo-model</span><span>2026-03-14</span><span>csv-tools</span></p>
-      <h1>Handle empty input and quoted commas in the CSV parser</h1>
-      <p class="refs">changes.patch · 15 steps</p>
+      <div class="eyebrow">Open source · Claude Code · OpenCode · free and local</div>
+      <h1><span class="line"><span>Your agent says it's done.</span></span><span class="line"><span class="red">Check the receipts.</span></span></h1>
+      <p class="lead">Receipts reads a coding agent's session and the git diff, finds every claim in its final message, and checks each one against what actually ran: exit codes, output and the diff.</p>
+      <div class="cta">
+        <button class="copy" type="button" data-copy="npx github:sakshar2303/receipts check demo --open" aria-label="Copy the command"><span><span class="dollar">$ </span>npx github:sakshar2303/receipts check demo --open</span><span class="hint">Copy</span></button>
+        <a class="btn solid" href="report.html">Open the live report <span class="arrow">→</span></a>
+        <a class="btn ghost" href="#demo">Watch the demo</a>
+      </div>
     </div>
-    <div class="actions">
-      <button type="button" class="btn" id="copy-md">Copy Markdown</button>
-      <button type="button" class="btn" id="download-json">Download JSON</button>
-      <button type="button" class="btn" id="theme" aria-label="Switch colour theme">Theme</button>
-      <button type="button" class="btn" id="keys" aria-expanded="false" aria-controls="keys-pop">Keyboard</button>
-      <div class="popover" id="keys-pop" role="dialog" aria-label="Keyboard shortcuts" hidden>
-        <dl>
-          <dt>j / k</dt><dd>next or previous claim</dd>
-          <dt>Enter</dt><dd>show or hide its evidence</dd>
-          <dt>/</dt><dd>filter claims</dd>
-          <dt>1 to 5</dt><dd>show one verdict</dd>
-          <dt>Esc</dt><dd>clear filters and selection</dd>
-        </dl>
+    <div class="printer" aria-label="A printed receipt: the build claim is contradicted, the test claim is stale, the file claim is verified">
+      <div class="tilt" id="tilt">
+      <div class="slot"></div>
+      <div class="feed">
+        <div class="receipt shake">
+          <div class="head"><b>RECEIPT</b>csv-tools · 15 steps · 9 claims</div>
+          <div class="row"><span class="t">Fixed the parser crash</span><span class="dots"></span><span class="v rev">REVIEW</span></div>
+          <div class="row"><span class="t">Updated src/parser.ts</span><span class="dots"></span><span class="v ok">OK</span></div>
+          <div class="row"><span class="t">Updated src/format.ts</span><span class="dots"></span><span class="v bad">FALSE</span></div>
+          <div class="row"><span class="t">Installed zod</span><span class="dots"></span><span class="v unv">NO PROOF</span></div>
+          <div class="row"><span class="t">Typecheck passes</span><span class="dots"></span><span class="v stale">STALE</span></div>
+          <div class="row"><span class="t">The build succeeds</span><span class="dots"></span><span class="v bad">FALSE</span></div>
+          <div class="row"><span class="t">All tests pass</span><span class="dots"></span><span class="v stale">STALE</span></div>
+          <div class="row"><span class="t">Added tests</span><span class="dots"></span><span class="v ok">OK</span></div>
+          <div class="row"><span class="t">Handles quoted commas</span><span class="dots"></span><span class="v rev">REVIEW</span></div>
+          <div class="total"><span>PROVEN</span><span>2 OF 9</span></div>
+          <div class="barcode"></div>
+        </div>
+      </div>
+      <div class="stamp s1" aria-hidden="true">Contradicted</div>
+      <div class="stamp s2" aria-hidden="true">Stale</div>
+      <div class="stamp s3" aria-hidden="true">Verified</div>
       </div>
     </div>
   </div>
-  <div class="wrap"><div class="perforation" aria-hidden="true"></div></div>
 </header>
-<main class="wrap">
-  <nav class="strip" aria-label="Filter claims by verdict"><button type="button" class="counter" data-v="verified" data-filter="verified" aria-pressed="false" title="Show only verified claims (key 1)"><span class="n">2</span><span class="tag label" data-v="verified"><span class="glyph" aria-hidden="true"></span>verified</span></button><button type="button" class="counter" data-v="contradicted" data-filter="contradicted" aria-pressed="false" title="Show only contradicted claims (key 2)"><span class="n">2</span><span class="tag label" data-v="contradicted"><span class="glyph" aria-hidden="true"></span>contradicted</span></button><button type="button" class="counter" data-v="stale" data-filter="stale" aria-pressed="false" title="Show only stale claims (key 3)"><span class="n">2</span><span class="tag label" data-v="stale"><span class="glyph" aria-hidden="true"></span>stale</span></button><button type="button" class="counter" data-v="unverified" data-filter="unverified" aria-pressed="false" title="Show only unverified claims (key 4)"><span class="n">1</span><span class="tag label" data-v="unverified"><span class="glyph" aria-hidden="true"></span>unverified</span></button><button type="button" class="counter" data-v="needs-review" data-filter="needs-review" aria-pressed="false" title="Show only needs review claims (key 5)"><span class="n">2</span><span class="tag label" data-v="needs-review"><span class="glyph" aria-hidden="true"></span>needs review</span></button></nav>
-  <p class="summary">2 of 9 claims are proven. The claim &quot;Updated src/format.ts&quot; is contradicted: src/format.ts does not appear in the diff.</p>
-  
-  <div class="panes">
-    <section aria-labelledby="h-message"><div class="section-head"><h2 id="h-message">Final message</h2><span class="meta">step 15</span></div><p class="message">Done. Here is what changed:
 
-- <mark class="span" data-v="needs-review" data-claim="1" title="needs review: Whether the bug is fixed cannot be checked mechanically; review the related changes.">Fixed the parser crash on empty input</mark> and <mark class="span" data-v="verified" data-claim="2" title="verified: The diff shows src/parser.ts modified (+16 -1).">updated src/parser.ts</mark>.
-- <mark class="span" data-v="verified" data-claim="3" title="verified: Test files gained lines: test/parser.test.ts.">Added tests for empty input in test/parser.test.ts</mark>.
-- <mark class="span" data-v="contradicted" data-claim="4" title="contradicted: src/format.ts does not appear in the diff.">Updated src/format.ts</mark> to trim trailing delimiters.
-- <mark class="span" data-v="unverified" data-claim="5" title="unverified: Install ran at step 13, but no manifest change shows zod.">Installed zod</mark> for row validation.
-- <mark class="span" data-v="stale" data-claim="6" title="stale: Last typecheck run passed at step 9, but test/parser.test.ts was edited at step 10 after it (5 changes in all).">Typecheck passes</mark> and <mark class="span" data-v="contradicted" data-claim="7" title="contradicted: Last build run (step 14, npm run build) exited 2.">the build succeeds</mark>.
-
-<mark class="span" data-v="stale" data-claim="8" title="stale: Last test run passed at step 8, but test/parser.test.ts was edited at step 10 after it (5 changes in all).">All tests pass</mark>. <mark class="span" data-v="needs-review" data-claim="9" title="needs review: Behaviour cannot be checked mechanically; a person needs to look.">The parser now handles quoted commas</mark>.</p></section>
-    <section aria-labelledby="h-claims"><div class="section-head"><h2 id="h-claims">Claims</h2><span class="meta">9 found</span></div><label class="visually-hidden" for="filter">Filter claims</label><input id="filter" class="filter" type="search" placeholder="Filter claims  ( / )" autocomplete="off"><ul class="claims" id="claims"><li class="claim" id="claim-4" data-id="4" data-v="contradicted" data-text="updated src/format.ts"><button type="button" class="claim-head" aria-expanded="false" aria-controls="ev-4"><span class="tag" data-v="contradicted"><span class="glyph" aria-hidden="true"></span>contradicted</span><span class="claim-text">Updated src/format.ts</span></button><p class="reason">src/format.ts does not appear in the diff.</p><div class="evidence" id="ev-4" hidden></div></li><li class="claim" id="claim-7" data-id="7" data-v="contradicted" data-text="the build succeeds"><button type="button" class="claim-head" aria-expanded="false" aria-controls="ev-7"><span class="tag" data-v="contradicted"><span class="glyph" aria-hidden="true"></span>contradicted</span><span class="claim-text">the build succeeds</span></button><p class="reason">Last build run (step 14, npm run build) exited 2.</p><ul class="chips" aria-label="Evidence"><li class="chip">step 14 · npm run build · exit 2</li></ul><div class="evidence" id="ev-7" hidden></div></li><li class="claim" id="claim-6" data-id="6" data-v="stale" data-text="typecheck passes"><button type="button" class="claim-head" aria-expanded="false" aria-controls="ev-6"><span class="tag" data-v="stale"><span class="glyph" aria-hidden="true"></span>stale</span><span class="claim-text">Typecheck passes</span></button><p class="reason">Last typecheck run passed at step 9, but test/parser.test.ts was edited at step 10 after it (5 changes in all).</p><ul class="chips" aria-label="Evidence"><li class="chip">step 9 · tsc --noEmit · exit 0</li><li class="chip">step 10 · test/parser.test.ts</li><li class="chip">step 11 · test/parser.test.ts</li></ul><div class="evidence" id="ev-6" hidden></div></li><li class="claim" id="claim-8" data-id="8" data-v="stale" data-text="all tests pass"><button type="button" class="claim-head" aria-expanded="false" aria-controls="ev-8"><span class="tag" data-v="stale"><span class="glyph" aria-hidden="true"></span>stale</span><span class="claim-text">All tests pass</span></button><p class="reason">Last test run passed at step 8, but test/parser.test.ts was edited at step 10 after it (5 changes in all).</p><ul class="chips" aria-label="Evidence"><li class="chip">step 8 · npm test · exit 0</li><li class="chip">step 10 · test/parser.test.ts</li><li class="chip">step 11 · test/parser.test.ts</li></ul><div class="evidence" id="ev-8" hidden></div></li><li class="claim" id="claim-5" data-id="5" data-v="unverified" data-text="installed zod"><button type="button" class="claim-head" aria-expanded="false" aria-controls="ev-5"><span class="tag" data-v="unverified"><span class="glyph" aria-hidden="true"></span>unverified</span><span class="claim-text">Installed zod</span></button><p class="reason">Install ran at step 13, but no manifest change shows zod.</p><ul class="chips" aria-label="Evidence"><li class="chip">step 13 · npm install zod · exit 0</li></ul><div class="evidence" id="ev-5" hidden></div></li><li class="claim" id="claim-1" data-id="1" data-v="needs-review" data-text="fixed the parser crash on empty input"><button type="button" class="claim-head" aria-expanded="false" aria-controls="ev-1"><span class="tag" data-v="needs-review"><span class="glyph" aria-hidden="true"></span>needs review</span><span class="claim-text">Fixed the parser crash on empty input</span></button><p class="reason">Whether the bug is fixed cannot be checked mechanically; review the related changes.</p><ul class="chips" aria-label="Evidence"><li class="chip">diff · src/parser.ts</li><li class="chip">diff · test/parser.test.ts</li><li class="chip">step 8 · npm test · exit 0</li></ul><div class="evidence" id="ev-1" hidden></div></li><li class="claim" id="claim-9" data-id="9" data-v="needs-review" data-text="the parser now handles quoted commas"><button type="button" class="claim-head" aria-expanded="false" aria-controls="ev-9"><span class="tag" data-v="needs-review"><span class="glyph" aria-hidden="true"></span>needs review</span><span class="claim-text">The parser now handles quoted commas</span></button><p class="reason">Behaviour cannot be checked mechanically; a person needs to look.</p><ul class="chips" aria-label="Evidence"><li class="chip">diff · src/parser.ts</li><li class="chip">diff · test/parser.test.ts</li><li class="chip">step 8 · npm test · exit 0</li></ul><div class="evidence" id="ev-9" hidden></div></li><li class="claim" id="claim-2" data-id="2" data-v="verified" data-text="updated src/parser.ts"><button type="button" class="claim-head" aria-expanded="false" aria-controls="ev-2"><span class="tag" data-v="verified"><span class="glyph" aria-hidden="true"></span>verified</span><span class="claim-text">updated src/parser.ts</span></button><p class="reason">The diff shows src/parser.ts modified (+16 -1).</p><ul class="chips" aria-label="Evidence"><li class="chip">diff · src/parser.ts</li></ul><div class="evidence" id="ev-2" hidden></div></li><li class="claim" id="claim-3" data-id="3" data-v="verified" data-text="added tests for empty input in test/parser.test.ts"><button type="button" class="claim-head" aria-expanded="false" aria-controls="ev-3"><span class="tag" data-v="verified"><span class="glyph" aria-hidden="true"></span>verified</span><span class="claim-text">Added tests for empty input in test/parser.test.ts</span></button><p class="reason">Test files gained lines: test/parser.test.ts.</p><ul class="chips" aria-label="Evidence"><li class="chip">diff · test/parser.test.ts</li></ul><div class="evidence" id="ev-3" hidden></div></li></ul><p class="empty" id="no-match" hidden>No claims match this filter.</p></section>
+<div class="marquee" aria-hidden="true">
+  <div class="track">
+    <span>"All tests pass" <b>stale</b></span><span>"The build succeeds" <b>contradicted</b></span><span>"Pushed to main" <b>verified</b></span><span>"Installed zod" <b>unverified</b></span><span>"No type errors" <b>verified</b></span><span>"Fixed the login loop" <b>needs review</b></span><span>"Only touched the parser" <b>contradicted</b></span><span>"Added tests for X" <b>verified</b></span>
+    <span>"All tests pass" <b>stale</b></span><span>"The build succeeds" <b>contradicted</b></span><span>"Pushed to main" <b>verified</b></span><span>"Installed zod" <b>unverified</b></span><span>"No type errors" <b>verified</b></span><span>"Fixed the login loop" <b>needs review</b></span><span>"Only touched the parser" <b>contradicted</b></span><span>"Added tests for X" <b>verified</b></span>
   </div>
-  <section aria-labelledby="h-timeline"><div class="section-head"><h2 id="h-timeline">Timeline</h2><span class="meta">15 steps</span></div>
-<div class="timeline"><div class="lane" aria-hidden="true"><span class="mark" data-v="contradicted" data-step="3" style="left:23.333%"></span><span class="mark" data-v="verified" data-step="7" style="left:50.000%"></span></div><div class="ticks" id="ticks" role="img" aria-label="15 steps; hover to read one"><span class="tick k-other" data-step="0"></span><span class="tick k-other" data-step="1"></span><span class="tick k-other" data-step="2"></span><span class="tick k-run" data-step="3"></span><span class="tick k-other" data-step="4"></span><span class="tick k-edit" data-step="5"></span><span class="tick k-edit" data-step="6"></span><span class="tick k-run" data-step="7"></span><span class="tick k-run" data-step="8"></span><span class="tick k-edit" data-step="9"></span><span class="tick k-edit" data-step="10"></span><span class="tick k-edit" data-step="11"></span><span class="tick k-run" data-step="12"></span><span class="tick k-run" data-step="13"></span><span class="tick k-other" data-step="14"></span></div><div class="lane" aria-hidden="true"><span class="mark edit" data-step="5" style="left:36.667%"></span><span class="mark edit" data-step="6" style="left:43.333%"></span><span class="mark edit" data-step="9" style="left:63.333%"></span><span class="mark edit" data-step="10" style="left:70.000%"></span><span class="mark edit" data-step="11" style="left:76.667%"></span></div>
-<p class="readout" id="readout" aria-live="polite">Hover the timeline to read a step. Select a claim to mark its evidence.</p>
-<ul class="legend"><li><span style="background:var(--verified);border-radius:50%"></span>tests passed</li><li><span style="background:var(--contradicted)"></span>tests failed</li><li><span style="background:var(--ink)"></span>file edited</li><li><span style="background:var(--muted)"></span>command run</li></ul></div></section>
-  <section aria-labelledby="h-flags"><div class="section-head"><h2 id="h-flags">Flags</h2><span class="meta">2</span></div><table class="ledger"><thead><tr><th scope="col">Severity</th><th scope="col">Flag</th><th scope="col">Detail</th><th scope="col" class="hide-sm">Files</th></tr></thead><tbody><tr><td><span class="sev sev-high">high</span></td><td><button type="button" class="toggle" aria-expanded="false" aria-controls="flag-0" data-flag="0">An existing test file was changed</button><div class="mono reason">test-file-modified</div></td><td>1 existing test file was changed: test/parser.test.ts.<div class="reason">An existing test file was edited or deleted, not just added to.</div></td><td class="path hide-sm">test/parser.test.ts</td></tr><tr class="detail" id="flag-0" hidden><td colspan="4"></td></tr><tr><td><span class="sev sev-high">high</span></td><td><button type="button" class="toggle" aria-expanded="false" aria-controls="flag-1" data-flag="1">A test was skipped or focused</button><div class="mono reason">test-skipped</div></td><td>1 skip or focus marker added in test/parser.test.ts.<div class="reason">The diff adds .skip, .only, xit, xdescribe, @pytest.mark.skip, t.Skip() or similar, or comments out an assertion.</div></td><td class="path hide-sm">test/parser.test.ts</td></tr><tr class="detail" id="flag-1" hidden><td colspan="4"></td></tr></tbody></table></section>
-  <section aria-labelledby="h-files"><div class="section-head"><h2 id="h-files">Changed files</h2><span class="meta">changes.patch · 2</span></div><table class="ledger"><thead><tr><th scope="col">File</th><th scope="col" class="hide-sm">Status</th><th scope="col" class="num">Added</th><th scope="col" class="num">Removed</th><th scope="col" class="hide-sm">Mentioned</th><th scope="col" class="hide-sm">Flags</th></tr></thead><tbody><tr><td class="path"><button type="button" class="toggle" aria-expanded="false" aria-controls="file-0" data-file="0">src/parser.ts</button></td><td class="hide-sm">modified</td><td class="num">+16</td><td class="num">−1</td><td class="hide-sm">yes</td><td class="mono hide-sm"></td></tr><tr class="detail" id="file-0" hidden><td colspan="6"></td></tr><tr><td class="path"><button type="button" class="toggle" aria-expanded="false" aria-controls="file-1" data-file="1">test/parser.test.ts</button></td><td class="hide-sm">modified</td><td class="num">+5</td><td class="num">−1</td><td class="hide-sm">yes</td><td class="mono hide-sm">test-file-modified, test-skipped</td></tr><tr class="detail" id="file-1" hidden><td colspan="6"></td></tr></tbody></table></section>
-</main>
-<footer>
+</div>
+
+<section id="how">
   <div class="wrap">
-    <p>Receipts 1.0.0 · report schema 1.0 · 2026-10-31</p>
-    <p>Generated locally. Nothing left your machine. Claims found by patterns only; no language model was used.</p>
+    <div class="eyebrow reveal">How it works</div>
+    <h2 class="reveal d1">Every claim, checked against what actually ran.</h2>
+    <p class="lead reveal d2">Agents run tests before their last edit, report builds that failed, and name files they never touched. Scroll through one real-looking session: the bundled demo.</p>
+    <div class="story">
+      <div class="pin">
+        <div class="msg" id="msg">
+          <div class="who"><span>Agent · final message</span><span>step 15</span></div>
+          Done. Here is what changed:<br>
+          · Fixed the parser crash on empty input and <mark data-k="v" style="--hl:var(--v)">updated src/parser.ts</mark>.<br>
+          · Added tests for empty input in test/parser.test.ts.<br>
+          · Updated src/format.ts to trim trailing delimiters.<br>
+          · <mark data-k="u" style="--hl:var(--u)">Installed zod</mark> for row validation.<br>
+          · Typecheck passes and <mark data-k="c" style="--hl:var(--c)">the build succeeds</mark>.<br><br>
+          <mark data-k="s" style="--hl:var(--s)">All tests pass</mark>. <mark data-k="n" style="--hl:var(--n)">The parser now handles quoted commas</mark>.
+          <div class="stamp" id="msgstamp" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step" data-k="c" data-stamp="Contradicted" data-col="var(--c)">
+          <span class="tag" style="color:var(--c)">✕ Contradicted</span>
+          <h3>"The build succeeds."</h3>
+          <p>The last build ran at step 14 and exited 2. The claim is false, and Receipts shows you the exact step and output.</p>
+          <div class="ev"><span class="k">step 14 · Bash</span><br>$ npm run build<br><span class="r">exit 2</span> · src/format.ts(4,3): error TS2322</div>
+        </div>
+        <div class="step" data-k="s" data-stamp="Stale" data-col="var(--s)">
+          <span class="tag" style="color:var(--s)">◓ Stale</span>
+          <h3>"All tests pass."</h3>
+          <p>True at step 8. Then the agent edited the test file at steps 10, 11 and 12 and never ran the tests again.</p>
+          <div class="ev"><span class="k">step 8</span> npm test <span class="g">8 passed</span><br><span class="k">step 10–12</span> <span class="y">edit</span> test/parser.test.ts<br><span class="k">after that</span> no test run</div>
+        </div>
+        <div class="step" data-k="u" data-stamp="Unverified" data-col="var(--u)">
+          <span class="tag" style="color:var(--u)">○ Unverified</span>
+          <h3>"Installed zod."</h3>
+          <p>An install command ran, but no manifest ever changed. Nothing proves zod is a dependency.</p>
+          <div class="ev"><span class="k">step 13</span> npm install zod · exit 0<br><span class="k">package.json</span> unchanged in the diff</div>
+        </div>
+        <div class="step" data-k="v" data-stamp="Verified" data-col="var(--v)">
+          <span class="tag" style="color:var(--v)">● Verified</span>
+          <h3>"Updated src/parser.ts."</h3>
+          <p>The diff shows the file changed. Proven, with the hunk one click away.</p>
+          <div class="ev"><span class="k">diff</span> src/parser.ts <span class="g">+16</span> <span class="r">−1</span></div>
+        </div>
+        <div class="step" data-k="n" data-stamp="Needs review" data-col="var(--n)">
+          <span class="tag" style="color:var(--n)">◆ Needs review</span>
+          <h3>"The parser now handles quoted commas."</h3>
+          <p>Behaviour can't be proven by a transcript, and Receipts never pretends otherwise. A model never decides a verdict.</p>
+          <div class="ev"><span class="k">context</span> diff of src/parser.ts, nearest test run</div>
+        </div>
+      </div>
+    </div>
   </div>
+</section>
+
+<section class="dark" id="stale">
+  <div class="wrap">
+    <div class="eyebrow reveal">The claim that fools reviewers</div>
+    <h2 class="reveal d1">Green at step 8. Edited at step 10.</h2>
+    <p class="lead reveal d2">A passing run only proves the code as it was. Receipts orders every run and every write, including <code>sed -i</code>, redirects and formatters, so a pass followed by an edit reads as stale.</p>
+    <div class="tl" id="tl">
+      <svg viewBox="0 0 1000 220" role="img" aria-label="Timeline of 15 steps: tests pass at step 8, the test file is edited at steps 10 to 12, the build fails at step 14, and the final message is at step 15.">
+        <line class="track" x1="20" y1="110" x2="980" y2="110"/>
+        <line class="draw" x1="20" y1="110" x2="980" y2="110"/>
+        <g id="ticks"></g>
+        <g class="mk" style="transition-delay:.9s"><circle cx="460" cy="110" r="11" fill="#79b886"/><text x="460" y="70" text-anchor="middle" class="lbl">tests pass</text><text x="460" y="150" text-anchor="middle">step 8</text></g>
+        <g class="mk" style="transition-delay:1.3s"><rect x="577" y="99" width="22" height="22" fill="#e0b552"/></g>
+        <g class="mk" style="transition-delay:1.45s"><rect x="645" y="99" width="22" height="22" fill="#e0b552"/></g>
+        <g class="mk" style="transition-delay:1.6s"><rect x="713" y="99" width="22" height="22" fill="#e0b552"/><text x="656" y="70" text-anchor="middle" class="lbl">test file edited</text><text x="656" y="150" text-anchor="middle">steps 10–12</text></g>
+        <g class="mk" style="transition-delay:1.9s"><path d="M838 98l24 24M862 98l-24 24" stroke="#ef8a83" stroke-width="5"/><text x="850" y="70" text-anchor="middle" class="lbl">build exits 2</text><text x="850" y="150" text-anchor="middle">step 14</text></g>
+        <g class="mk" style="transition-delay:2.2s"><circle cx="980" cy="110" r="8" fill="none" stroke="#e9e6df" stroke-width="3"/><text x="980" y="150" text-anchor="end">reply</text></g>
+        <g class="bracket"><path d="M470 185v12h510v-12" fill="none" stroke="#e0b552" stroke-width="2"/><text x="725" y="216" text-anchor="middle" style="fill:#e0b552">no test run after the edits</text></g>
+      </svg>
+    </div>
+    <p class="verdict-line">"All tests pass" → <em>stale</em>. It was true once, and nobody checked again.</p>
+  </div>
+</section>
+
+<section id="flags">
+  <div class="wrap">
+    <div class="eyebrow reveal">Flags</div>
+    <h2 class="reveal d1">It also catches what the agent didn't say.</h2>
+    <p class="lead reveal d2">The fastest way to make "all tests pass" true is to change the tests. Eleven detectors watch the diff and the commands for exactly that.</p>
+    <div class="flags reveal d3">
+      <div class="diff">
+        <div class="fn"><span>test/parser.test.ts</span><span style="color:var(--c);font-weight:700">TEST-SKIPPED · HIGH</span></div>
+        <div class="ln"><i>18</i>  });</div>
+        <div class="ln"><i></i></div>
+        <div class="ln del"><i>20</i>- it("handles CRLF line endings", () =&gt; {</div>
+        <div class="ln add"><i>20</i>+ it<b>.skip</b>("handles CRLF line endings", () =&gt; {</div>
+        <div class="ln"><i>21</i>    expect(parse("a,b\r\n")).toEqual([["a", "b"]]);</div>
+      </div>
+      <div class="flagchips">
+        <span class="chip" style="transition-delay:.05s"><em class="h">HIGH</em>test-skipped</span>
+        <span class="chip" style="transition-delay:.12s"><em class="h">HIGH</em>test-file-modified</span>
+        <span class="chip" style="transition-delay:.19s"><em class="h">HIGH</em>secret-in-diff</span>
+        <span class="chip" style="transition-delay:.26s"><em class="h">HIGH</em>dangerous-command</span>
+        <span class="chip" style="transition-delay:.33s"><em class="h">HIGH</em>sensitive-file</span>
+        <span class="chip" style="transition-delay:.40s"><em class="m">MED</em>assertion-weakened</span>
+        <span class="chip" style="transition-delay:.47s"><em class="m">MED</em>coverage-threshold-lowered</span>
+        <span class="chip" style="transition-delay:.54s"><em class="m">MED</em>failing-command-ignored</span>
+        <span class="chip" style="transition-delay:.61s"><em class="m">MED</em>unmentioned-change</span>
+        <span class="chip" style="transition-delay:.68s"><em class="l">LOW</em>lockfile-churn</span>
+        <span class="chip" style="transition-delay:.75s"><em class="l">LOW</em>large-diff</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="verdicts" style="padding-top:40px">
+  <div class="wrap">
+    <div class="eyebrow reveal">Five verdicts, no guessing</div>
+    <h2 class="reveal d1">Every verdict links to its evidence.</h2>
+    <div class="stamps reveal d2">
+      <div class="vcard" style="--col:var(--v);transition-delay:0s"><span class="big" style="transition-delay:.1s">Verified</span><p>Direct evidence supports it, and nothing later invalidates it.</p><small>npm test exited 0 after the last edit</small></div>
+      <div class="vcard" style="--col:var(--c)"><span class="big" style="transition-delay:.25s">Contradicted</span><p>The evidence shows it is false.</p><small>"build succeeds", build exited 2</small></div>
+      <div class="vcard" style="--col:var(--s)"><span class="big" style="transition-delay:.4s">Stale</span><p>True once; later changes broke the link.</p><small>pass at step 8, edit at step 10</small></div>
+      <div class="vcard" style="--col:var(--u)"><span class="big" style="transition-delay:.55s">Unverified</span><p>No evidence either way. Never guessed.</p><small>"tests pass", no test ever ran</small></div>
+      <div class="vcard" style="--col:var(--n)"><span class="big" style="transition-delay:.7s">Review</span><p>Behaviour a human must judge. A model never decides.</p><small>"the dropdown feels faster"</small></div>
+    </div>
+  </div>
+</section>
+
+<section class="dark" id="results">
+  <div class="wrap">
+    <div class="eyebrow reveal">Measured, not promised</div>
+    <h2 class="reveal d1">When it says verified, it is.</h2>
+    <p class="lead reveal d2">Scored on 30 hand-written sessions and on 45 real agent replies from Claude Code and OpenCode. The number that matters: claims marked verified that were not.</p>
+    <div class="nums reveal d3" id="nums">
+      <div><div class="count num zero" style="--to:0"></div><p>false-verified claims out of 54 marked verified on real sessions (patterns)</p></div>
+      <div><div class="count num" style="--to:329"></div><p>claims in 45 real agent replies, each labelled from the raw tool output</p></div>
+      <div><div class="count num" style="--to:11"></div><p>risk flags, from skipped tests to leaked secrets</p></div>
+      <div><div class="count num pre" style="--to:1"></div><p>second for a 528-step session, all on your machine</p></div>
+    </div>
+    <table class="evalt reveal d4" id="evalt">
+      <thead><tr><th>Real sessions</th><th>Patterns</th><th>Patterns + local model</th></tr></thead>
+      <tbody>
+        <tr><td>False-verified rate</td><td><span class="bar" style="--w:2px"></span>0% (0 of 54)</td><td><span class="bar" style="--w:2px"></span>0% (0 of 61)</td></tr>
+        <tr><td>Verdict accuracy</td><td><span class="bar" style="--w:166px"></span>82.9%</td><td><span class="bar" style="--w:141px"></span>70.7%</td></tr>
+        <tr><td>Extraction precision</td><td><span class="bar" style="--w:194px"></span>97.2%</td><td><span class="bar" style="--w:178px"></span>89.2%</td></tr>
+        <tr><td>Extraction recall</td><td><span class="bar" style="--w:43px"></span>21.3%</td><td><span class="bar" style="--w:85px"></span>42.6%</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Real-session labels come from two independent AI passes that agreed on 117 of 138 claims (Cohen's kappa 0.73); the author has not reviewed them yet. Every verdict error is on the safe side: where Receipts was wrong, it said unverified or needs review although the evidence was enough. It never called a false claim verified. Full method and limitations in <a href="https://github.com/sakshar2303/receipts/blob/main/eval/results.md">eval/results.md</a>.</p>
+  </div>
+</section>
+
+<section id="where">
+  <div class="wrap">
+    <div class="eyebrow reveal">Wherever you review</div>
+    <h2 class="reveal d1">Terminal, pull request, CI, and the agent itself.</h2>
+    <div class="places">
+      <div class="place reveal d1"><h3>In your terminal</h3><p>After any agent session, from the project folder.</p><pre class="code">$ receipts check latest
+  <span class="r">CONTRADICTED</span>  the build succeeds   step 14 · exit 2
+  <span class="g">VERIFIED</span>      updated src/parser.ts  diff</pre></div>
+      <div class="place reveal d2"><h3>In the pull request</h3><p>A Markdown receipt, ready to paste.</p><pre class="code">$ receipts check latest --format md &gt; receipt.md</pre></div>
+      <div class="place reveal d3"><h3>Before every push</h3><p>Block the push when a claim is false or stale. Exit codes for CI.</p><pre class="code">$ receipts install-hook --fail-on contradicted,stale
+<span class="c"># exit 1 when a claim matches, 0 otherwise</span></pre></div>
+      <div class="place reveal d4"><h3>Inside the agent</h3><p>A skill and an MCP server let the agent check its own draft before it says it's done.</p><pre class="code">{ "command": "npx",
+  "args": ["-y", "github:sakshar2303/receipts", "mcp"] }</pre></div>
+    </div>
+  </div>
+</section>
+
+<section class="dark" id="demo">
+  <div class="wrap">
+    <div class="eyebrow reveal">Demo</div>
+    <h2 class="reveal d1">Watch one session get audited.</h2>
+    <div class="video reveal d2"><video controls preload="none" poster="assets/demo-poster.png" src="demo.mp4"></video></div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2 class="reveal">Stop reading transcripts. Read the receipt.</h2>
+    <div class="receipt reveal d1">
+      <div class="head"><b>RECEIPTS 1.0</b>free · local · open source · MIT</div>
+      <div class="row"><span class="t">API keys needed</span><span class="dots"></span><span class="v ok">0</span></div>
+      <div class="row"><span class="t">Paid model calls</span><span class="dots"></span><span class="v ok">0</span></div>
+      <div class="row"><span class="t">Transcript text sent anywhere</span><span class="dots"></span><span class="v ok">0</span></div>
+      <div class="row"><span class="t">Verdicts decided by a model</span><span class="dots"></span><span class="v ok">0</span></div>
+      <div class="total"><span>TIME TO TRY</span><span>60 S</span></div>
+      <div class="barcode"></div>
+    </div>
+    <div class="cta reveal d2" style="margin-top:44px">
+      <button class="copy" type="button" data-copy="npx github:sakshar2303/receipts check demo --open" aria-label="Copy the command"><span><span class="dollar">$ </span>npx github:sakshar2303/receipts check demo --open</span><span class="hint">Copy</span></button>
+      <a class="btn solid" href="https://github.com/sakshar2303/receipts">Star on GitHub <span class="arrow">→</span></a>
+      <a class="btn ghost" href="report.html">Live report</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap"><span>Receipts · MIT licence · by Sakshar Dhawan</span><span>This page loads nothing from anywhere else. No tracking.</span></div>
 </footer>
-<script type="application/json" id="receipt-data">{"receipt":{"schemaVersion":"1.0","receiptsVersion":"1.0.0","generatedAt":"2026-10-31T11:47:41.174Z","session":{"id":"demo-csv-parser","source":"claude-code","title":"Handle empty input and quoted commas in the CSV parser","repo":"csv-tools","model":"demo-model","startedAt":"2026-03-14T09:12:14.000Z","stepCount":15,"turns":null},"changes":{"source":"patch","label":"changes.patch","notice":null,"files":[{"path":"src\/parser.ts","oldPath":"src\/parser.ts","status":"modified","binary":false,"added":16,"removed":1,"hunks":[{"header":"@@ -1,3 +1,18 @@","oldStart":1,"oldLines":3,"newStart":1,"newLines":18,"lines":[{"kind":"context","text":"export function parse(input: string): string[][] {","oldLine":1,"newLine":1},{"kind":"del","text":"  return input.split(\"\\n\").map((line) =\u003e line.split(\",\"));","oldLine":2,"newLine":null},{"kind":"add","text":"  if (input.trim() === \"\") return [];","oldLine":null,"newLine":2},{"kind":"add","text":"  return input.split(\/\\r?\\n\/).map(splitRow);","oldLine":null,"newLine":3},{"kind":"add","text":"}","oldLine":null,"newLine":4},{"kind":"add","text":"","oldLine":null,"newLine":5},{"kind":"add","text":"function splitRow(line: string): string[] {","oldLine":null,"newLine":6},{"kind":"add","text":"  const cells: string[] = [];","oldLine":null,"newLine":7},{"kind":"add","text":"  let cell = \"\";","oldLine":null,"newLine":8},{"kind":"add","text":"  let quoted = false;","oldLine":null,"newLine":9},{"kind":"add","text":"  for (const ch of line) {","oldLine":null,"newLine":10},{"kind":"add","text":"    if (ch === '\"') quoted = !quoted;","oldLine":null,"newLine":11},{"kind":"add","text":"    else if (ch === \",\" \u0026\u0026 !quoted) {","oldLine":null,"newLine":12},{"kind":"add","text":"      cells.push(cell.trim());","oldLine":null,"newLine":13},{"kind":"add","text":"      cell = \"\";","oldLine":null,"newLine":14},{"kind":"add","text":"    } else cell += ch;","oldLine":null,"newLine":15},{"kind":"add","text":"  }","oldLine":null,"newLine":16},{"kind":"add","text":"  return [...cells, cell.trim()];","oldLine":null,"newLine":17},{"kind":"context","text":"}","oldLine":3,"newLine":18}]}],"truncated":false,"mentioned":true,"flags":[]},{"path":"test\/parser.test.ts","oldPath":"test\/parser.test.ts","status":"modified","binary":false,"added":5,"removed":1,"hunks":[{"header":"@@ -17,7 +17,7 @@ describe(\"parse\", () =\u003e {","oldStart":17,"oldLines":7,"newStart":17,"newLines":7,"lines":[{"kind":"context","text":"    expect(parse('\"a,b\",c')).toEqual([[\"a,b\", \"c\"]]);","oldLine":17,"newLine":17},{"kind":"context","text":"  });","oldLine":18,"newLine":18},{"kind":"context","text":"","oldLine":19,"newLine":19},{"kind":"del","text":"  it(\"handles CRLF line endings\", () =\u003e {","oldLine":20,"newLine":null},{"kind":"add","text":"  it.skip(\"handles CRLF line endings\", () =\u003e {","oldLine":null,"newLine":20},{"kind":"context","text":"    expect(parse(\"a,b\\r\\nc,d\")).toEqual([","oldLine":21,"newLine":21},{"kind":"context","text":"      [\"a\", \"b\"],","oldLine":22,"newLine":22},{"kind":"context","text":"      [\"c\", \"d\"],","oldLine":23,"newLine":23}]},{"header":"@@ -28,4 +28,8 @@ describe(\"parse\", () =\u003e {","oldStart":28,"oldLines":4,"newStart":28,"newLines":8,"lines":[{"kind":"context","text":"  it(\"trims whitespace around cells\", () =\u003e {","oldLine":28,"newLine":28},{"kind":"context","text":"    expect(parse(\" a , b \")).toEqual([[\"a\", \"b\"]]);","oldLine":29,"newLine":29},{"kind":"context","text":"  });","oldLine":30,"newLine":30},{"kind":"add","text":"","oldLine":null,"newLine":31},{"kind":"add","text":"  it(\"returns no rows for empty input\", () =\u003e {","oldLine":null,"newLine":32},{"kind":"add","text":"    expect(parse(\"\")).toEqual([]);","oldLine":null,"newLine":33},{"kind":"add","text":"  });","oldLine":null,"newLine":34},{"kind":"context","text":"});","oldLine":31,"newLine":35}]}],"truncated":false,"mentioned":true,"flags":["test-file-modified","test-skipped"]}]},"finalMessage":{"text":"Done. Here is what changed:\n\n- Fixed the parser crash on empty input and updated src\/parser.ts.\n- Added tests for empty input in test\/parser.test.ts.\n- Updated src\/format.ts to trim trailing delimiters.\n- Installed zod for row validation.\n- Typecheck passes and the build succeeds.\n\nAll tests pass. The parser now handles quoted commas.","stepIndex":14},"claims":[{"id":1,"text":"Fixed the parser crash on empty input","type":"bug-fixed","subject":"the parser crash on empty input","span":{"start":31,"end":68},"extractedBy":"pattern","verdict":"needs-review","evidence":[{"kind":"diff","path":"src\/parser.ts","status":"modified","added":16,"removed":1},{"kind":"diff","path":"test\/parser.test.ts","status":"modified","added":5,"removed":1},{"kind":"run","stepIndex":7,"toolId":"toolu_08","command":"npm test","segment":"npm test","exitCode":0,"isSidechain":false}],"reason":"Whether the bug is fixed cannot be checked mechanically; review the related changes."},{"id":2,"text":"updated src\/parser.ts","type":"file-changed","subject":"src\/parser.ts","span":{"start":73,"end":94},"extractedBy":"pattern","verdict":"verified","evidence":[{"kind":"diff","path":"src\/parser.ts","status":"modified","added":16,"removed":1}],"reason":"The diff shows src\/parser.ts modified (+16 -1)."},{"id":3,"text":"Added tests for empty input in test\/parser.test.ts","type":"tests-added","subject":"empty input in test\/parser.test.ts","span":{"start":98,"end":148},"extractedBy":"pattern","verdict":"verified","evidence":[{"kind":"diff","path":"test\/parser.test.ts","status":"modified","added":5,"removed":1}],"reason":"Test files gained lines: test\/parser.test.ts."},{"id":4,"text":"Updated src\/format.ts","type":"file-changed","subject":"src\/format.ts","span":{"start":152,"end":173},"extractedBy":"pattern","verdict":"contradicted","evidence":[],"reason":"src\/format.ts does not appear in the diff."},{"id":5,"text":"Installed zod","type":"dependency-added","subject":"zod","span":{"start":205,"end":218},"extractedBy":"pattern","verdict":"unverified","evidence":[{"kind":"run","stepIndex":12,"toolId":"toolu_13","command":"npm install zod","segment":"npm install zod","exitCode":0,"isSidechain":false}],"reason":"Install ran at step 13, but no manifest change shows zod."},{"id":6,"text":"Typecheck passes","type":"typecheck-passes","subject":"typecheck","span":{"start":241,"end":257},"extractedBy":"pattern","verdict":"stale","evidence":[{"kind":"run","stepIndex":8,"toolId":"toolu_09","command":"npx tsc --noEmit","segment":"tsc --noEmit","exitCode":0,"isSidechain":false},{"kind":"edit","stepIndex":9,"toolId":"toolu_10","path":"test\/parser.test.ts","isSidechain":false},{"kind":"edit","stepIndex":10,"toolId":"toolu_11","path":"test\/parser.test.ts","isSidechain":false},{"kind":"edit","stepIndex":11,"toolId":"toolu_12","path":"src\/parser.ts","isSidechain":false}],"reason":"Last typecheck run passed at step 9, but test\/parser.test.ts was edited at step 10 after it (5 changes in all)."},{"id":7,"text":"the build succeeds","type":"build-passes","subject":"build","span":{"start":262,"end":280},"extractedBy":"pattern","verdict":"contradicted","evidence":[{"kind":"run","stepIndex":13,"toolId":"toolu_14","command":"npm run build","segment":"npm run build","exitCode":2,"isSidechain":false}],"reason":"Last build run (step 14, npm run build) exited 2."},{"id":8,"text":"All tests pass","type":"tests-pass","subject":"tests","span":{"start":283,"end":297},"extractedBy":"pattern","verdict":"stale","evidence":[{"kind":"run","stepIndex":7,"toolId":"toolu_08","command":"npm test","segment":"npm test","exitCode":0,"isSidechain":false},{"kind":"edit","stepIndex":9,"toolId":"toolu_10","path":"test\/parser.test.ts","isSidechain":false},{"kind":"edit","stepIndex":10,"toolId":"toolu_11","path":"test\/parser.test.ts","isSidechain":false},{"kind":"edit","stepIndex":11,"toolId":"toolu_12","path":"src\/parser.ts","isSidechain":false}],"reason":"Last test run passed at step 8, but test\/parser.test.ts was edited at step 10 after it (5 changes in all)."},{"id":9,"text":"The parser now handles quoted commas","type":"behaviour","subject":"quoted commas","span":{"start":299,"end":335},"extractedBy":"pattern","verdict":"needs-review","evidence":[{"kind":"diff","path":"src\/parser.ts","status":"modified","added":16,"removed":1},{"kind":"diff","path":"test\/parser.test.ts","status":"modified","added":5,"removed":1},{"kind":"run","stepIndex":7,"toolId":"toolu_08","command":"npm test","segment":"npm test","exitCode":0,"isSidechain":false}],"reason":"Behaviour cannot be checked mechanically; a person needs to look."}],"counts":{"verified":2,"contradicted":2,"stale":2,"unverified":1,"needs-review":2},"summary":"2 of 9 claims are proven. The claim \"Updated src\/format.ts\" is contradicted: src\/format.ts does not appear in the diff.","flags":[{"id":"test-file-modified","severity":"high","title":"An existing test file was changed","detail":"1 existing test file was changed: test\/parser.test.ts.","files":["test\/parser.test.ts"],"evidence":[{"kind":"diff","path":"test\/parser.test.ts","status":"modified","added":5,"removed":1}],"lines":[{"path":"test\/parser.test.ts","line":{"kind":"del","text":"  it(\"handles CRLF line endings\", () =\u003e {","oldLine":20,"newLine":null}},{"path":"test\/parser.test.ts","line":{"kind":"add","text":"  it.skip(\"handles CRLF line endings\", () =\u003e {","oldLine":null,"newLine":20}},{"path":"test\/parser.test.ts","line":{"kind":"add","text":"","oldLine":null,"newLine":31}},{"path":"test\/parser.test.ts","line":{"kind":"add","text":"  it(\"returns no rows for empty input\", () =\u003e {","oldLine":null,"newLine":32}},{"path":"test\/parser.test.ts","line":{"kind":"add","text":"    expect(parse(\"\")).toEqual([]);","oldLine":null,"newLine":33}},{"path":"test\/parser.test.ts","line":{"kind":"add","text":"  });","oldLine":null,"newLine":34}}],"heuristic":false},{"id":"test-skipped","severity":"high","title":"A test was skipped or focused","detail":"1 skip or focus marker added in test\/parser.test.ts.","files":["test\/parser.test.ts"],"evidence":[{"kind":"diff","path":"test\/parser.test.ts","status":"modified","added":5,"removed":1}],"lines":[{"path":"test\/parser.test.ts","line":{"kind":"del","text":"  it(\"handles CRLF line endings\", () =\u003e {","oldLine":20,"newLine":null}},{"path":"test\/parser.test.ts","line":{"kind":"add","text":"  it.skip(\"handles CRLF line endings\", () =\u003e {","oldLine":null,"newLine":20}}],"heuristic":false}],"llm":{"model":null,"notice":null},"notices":[],"steps":[{"index":0,"at":"2026-03-14T09:12:14.000Z","model":"demo-model","isSidechain":false,"text":"Let me look at the parser and its tests.","tools":[{"id":"toolu_01","name":"Read","canonical":"read","command":null,"exitCode":null,"status":"ok","note":null,"output":"","paths":[],"checks":[]}]},{"index":1,"at":"2026-03-14T09:12:28.000Z","model":"demo-model","isSidechain":false,"text":"","tools":[{"id":"toolu_02","name":"Read","canonical":"read","command":null,"exitCode":null,"status":"ok","note":null,"output":"","paths":[],"checks":[]}]},{"index":2,"at":"2026-03-14T09:12:42.000Z","model":"demo-model","isSidechain":false,"text":"","tools":[{"id":"toolu_03","name":"Grep","canonical":"search","command":null,"exitCode":null,"status":"ok","note":null,"output":"","paths":[],"checks":[]}]},{"index":3,"at":"2026-03-14T09:12:56.000Z","model":"demo-model","isSidechain":false,"text":"Running the tests to see the failures.","tools":[{"id":"toolu_04","name":"Bash","canonical":"run","command":"npm test","exitCode":1,"status":"error","note":null,"output":"Exit code 1\n FAIL  test\/parser.test.ts \u003e parse \u003e keeps quoted commas together\n AssertionError: expected [ [ '\"a', 'b\"' ] ] to deeply equal [ [ 'a,b' ] ]\n\n Test Files  1 failed (1)\n      Tests  1 failed | 7 passed (8)","paths":[],"checks":[{"kind":"test","outcome":"fail"}]}]},{"index":4,"at":"2026-03-14T09:13:10.000Z","model":"demo-model","isSidechain":false,"text":"","tools":[{"id":"toolu_05","name":"Read","canonical":"read","command":null,"exitCode":null,"status":"ok","note":null,"output":"","paths":[],"checks":[]}]},{"index":5,"at":"2026-03-14T09:13:24.000Z","model":"demo-model","isSidechain":false,"text":"The parser splits on every comma. I will add a quote-aware row splitter.","tools":[{"id":"toolu_06","name":"Edit","canonical":"edit","command":null,"exitCode":null,"status":"ok","note":null,"output":"","paths":["src\/parser.ts"],"checks":[]}]},{"index":6,"at":"2026-03-14T09:13:38.000Z","model":"demo-model","isSidechain":false,"text":"","tools":[{"id":"toolu_07","name":"Edit","canonical":"edit","command":null,"exitCode":null,"status":"ok","note":null,"output":"","paths":["src\/parser.ts"],"checks":[]}]},{"index":7,"at":"2026-03-14T09:13:52.000Z","model":"demo-model","isSidechain":false,"text":"","tools":[{"id":"toolu_08","name":"Bash","canonical":"run","command":"npm test","exitCode":0,"status":"ok","note":null,"output":" Test Files  1 passed (1)\n      Tests  8 passed (8)","paths":[],"checks":[{"kind":"test","outcome":"pass"}]}]},{"index":8,"at":"2026-03-14T09:14:06.000Z","model":"demo-model","isSidechain":false,"text":"","tools":[{"id":"toolu_09","name":"Bash","canonical":"run","command":"npx tsc --noEmit","exitCode":0,"status":"ok","note":null,"output":"","paths":[],"checks":[{"kind":"typecheck","outcome":"pass"}]}]},{"index":9,"at":"2026-03-14T09:14:20.000Z","model":"demo-model","isSidechain":false,"text":"Adding tests for the new cases.","tools":[{"id":"toolu_10","name":"Edit","canonical":"edit","command":null,"exitCode":null,"status":"ok","note":null,"output":"The file has been updated.","paths":["test\/parser.test.ts"],"checks":[]}]},{"index":10,"at":"2026-03-14T09:14:34.000Z","model":"demo-model","isSidechain":false,"text":"","tools":[{"id":"toolu_11","name":"Edit","canonical":"edit","command":null,"exitCode":null,"status":"ok","note":null,"output":"The file has been updated.","paths":["test\/parser.test.ts"],"checks":[]}]},{"index":11,"at":"2026-03-14T09:14:48.000Z","model":"demo-model","isSidechain":false,"text":"One more tweak: trim whitespace around cells.","tools":[{"id":"toolu_12","name":"Edit","canonical":"edit","command":null,"exitCode":null,"status":"ok","note":null,"output":"The file has been updated.","paths":["src\/parser.ts"],"checks":[]}]},{"index":12,"at":"2026-03-14T09:15:02.000Z","model":"demo-model","isSidechain":false,"text":"","tools":[{"id":"toolu_13","name":"Bash","canonical":"run","command":"npm install zod","exitCode":0,"status":"ok","note":null,"output":"up to date, audited 112 packages in 1s","paths":[],"checks":[]}]},{"index":13,"at":"2026-03-14T09:15:16.000Z","model":"demo-model","isSidechain":false,"text":"","tools":[{"id":"toolu_14","name":"Bash","canonical":"run","command":"npm run build","exitCode":2,"status":"error","note":null,"output":"Exit code 2\n\u003e csv-tools@1.0.0 build\n\u003e tsc -p tsconfig.build.json\n\nsrc\/format.ts(4,3): error TS2322: Type 'string' is not assignable to type 'number'.","paths":[],"checks":[{"kind":"build","outcome":"fail"}]}]},{"index":14,"at":"2026-03-14T09:15:30.000Z","model":"demo-model","isSidechain":false,"text":"Done. Here is what changed:\n\n- Fixed the parser crash on empty input and updated src\/parser.ts.\n- Added tests for empty input in test\/parser.test.ts.\n- Updated src\/format.ts to trim trailing delimiters.\n- Installed zod for row validation.\n- Typecheck passes and the build succeeds.\n\nAll tests pass. The parser now handles quoted commas.","tools":[]}]},"markdown":"### Receipts: Handle empty input and quoted commas in the CSV parser\n\n**2 of 9 claims are proven. The claim \"Updated src\/format.ts\" is contradicted: src\/format.ts does not appear in the diff.**\n\n| Verdict | Claim | Why | Evidence |\n| --- | --- | --- | --- |\n| contradicted | Updated src\/format.ts | src\/format.ts does not appear in the diff. | none |\n| contradicted | the build succeeds | Last build run (step 14, npm run build) exited 2. | step 14 · npm run build · exit 2 |\n| stale | Typecheck passes | Last typecheck run passed at step 9, but test\/parser.test.ts was edited at step 10 after it (5 changes in all). | step 9 · tsc --noEmit · exit 0 |\n| stale | All tests pass | Last test run passed at step 8, but test\/parser.test.ts was edited at step 10 after it (5 changes in all). | step 8 · npm test · exit 0 |\n| unverified | Installed zod | Install ran at step 13, but no manifest change shows zod. | step 13 · npm install zod · exit 0 |\n| needs review | Fixed the parser crash on empty input | Whether the bug is fixed cannot be checked mechanically; review the related changes. | diff · src\/parser.ts |\n| needs review | The parser now handles quoted commas | Behaviour cannot be checked mechanically; a person needs to look. | diff · src\/parser.ts |\n| verified | updated src\/parser.ts | The diff shows src\/parser.ts modified (+16 -1). | diff · src\/parser.ts |\n| verified | Added tests for empty input in test\/parser.test.ts | Test files gained lines: test\/parser.test.ts. | diff · test\/parser.test.ts |\n\n**Flags**\n\n- **high** `test-file-modified`: 1 existing test file was changed: test\/parser.test.ts.\n- **high** `test-skipped`: 1 skip or focus marker added in test\/parser.test.ts.\n\n\u003csub\u003eReceipts 1.0.0 · claude-code session, 15 steps · changes: changes.patch · claims from patterns\u003c\/sub\u003e\n"}</script>
-<script>(function clientApp() {
-  const VERDICTS2 = ["verified", "contradicted", "stale", "unverified", "needs-review"];
-  const dataEl = document.getElementById("receipt-data");
-  const { receipt, markdown } = JSON.parse(dataEl?.textContent ?? "{}");
-  const state = { filter: "", query: "", selected: 0, open: /* @__PURE__ */ new Set() };
-  const claimsById = new Map(receipt.claims.map((c) => [c.id, c]));
-  const tools = /* @__PURE__ */ new Map();
-  for (const step of receipt.steps)
-    for (const tool of step.tools) tools.set(tool.id, { step, tool });
-  const all = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-  const one = (sel) => document.querySelector(sel);
-  const filterInput = document.querySelector("#filter");
-  function h(tag2, attrs = {}, ...children) {
-    const el = document.createElement(tag2);
-    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
-    for (const c of children)
-      if (c !== null) el.append(typeof c === "string" ? document.createTextNode(c) : c);
-    return el;
-  }
-  const stepLabel2 = (i) => `Step ${i + 1}`;
-  function diffTable(lines, header) {
-    const body = h("tbody");
-    if (header) body.append(h("tr", { class: "hunk" }, h("td", { colspan: "4" }, header)));
-    for (const l of lines) {
-      const sign = l.kind === "add" ? "+" : l.kind === "del" ? "\u2212" : " ";
-      body.append(
-        h(
-          "tr",
-          { class: l.kind },
-          h("td", { class: "ln" }, l.oldLine === null ? "" : String(l.oldLine)),
-          h("td", { class: "ln" }, l.newLine === null ? "" : String(l.newLine)),
-          h("td", { class: "sign" }, sign),
-          h("td", {}, l.text)
-        )
-      );
-    }
-    return h("table", { class: "diff" }, body);
-  }
-  function fileDiff(path20, limit = Infinity) {
-    const file2 = receipt.changes.files.find((f) => f.path === path20);
-    if (!file2) return h("p", { class: "empty" }, "This file is not in the change set.");
-    if (file2.binary)
-      return h("p", { class: "empty" }, "Binary file; there is no text diff to show.");
-    const wrap = h("div");
-    let shown = 0;
-    for (const hunk of file2.hunks) {
-      if (shown >= limit) break;
-      const lines = hunk.lines.slice(0, limit - shown);
-      shown += lines.length;
-      wrap.append(diffTable(lines, hunk.header));
-    }
-    if (file2.hunks.length === 0)
-      wrap.append(h("p", { class: "empty" }, "No line changes were recorded for this file."));
-    if (file2.truncated || shown >= limit)
-      wrap.append(h("p", { class: "empty" }, "The diff is cut short here."));
-    return wrap;
-  }
-  const HIGHLIGHT = /fail|error|✖|passed|passing|failing|exit code|exited|no tests/i;
-  function evidenceItem(e) {
-    if (e.kind === "diff") {
-      return h(
-        "div",
-        {},
-        h(
-          "div",
-          { class: "ev-head" },
-          h("strong", { class: "mono" }, e.path),
-          h("span", {}, `${e.status} \xB7 +${e.added} \u2212${e.removed}`)
-        ),
-        fileDiff(e.path, 40)
-      );
-    }
-    const found = tools.get(e.toolId);
-    const head = h(
-      "div",
-      { class: "ev-head" },
-      h("strong", {}, stepLabel2(e.stepIndex)),
-      h("span", {}, found ? found.tool.name : "")
-    );
-    if (e.isSidechain) head.append(h("span", { class: "badge" }, "from sub-agent"));
-    const jump = h(
-      "button",
-      { type: "button", class: "link", "data-jump": String(e.stepIndex) },
-      "Show in timeline"
-    );
-    if (e.kind === "edit")
-      return h("div", {}, head, h("p", { class: "mono" }, `${e.path} changed`), jump);
-    head.append(
-      h("span", { class: "mono" }, e.exitCode === null ? "no exit code" : `exit ${e.exitCode}`)
-    );
-    const out = found?.tool.output ?? "";
-    const pre = h("pre", { class: "out" });
-    for (const line of out.split("\n")) {
-      pre.append(HIGHLIGHT.test(line) ? h("span", { class: "hl" }, line) : line, "\n");
-    }
-    return h(
-      "div",
-      {},
-      head,
-      h(
-        "pre",
-        { class: "cmd" },
-        `$ ${e.command.length > 2e3 ? `${e.command.slice(0, 2e3)}\u2026` : e.command}`
-      ),
-      e.segment && e.segment !== e.command ? h("p", { class: "reason" }, `Judged on: ${e.segment}`) : null,
-      found?.tool.note ? h("p", { class: "reason" }, `Note: ${found.tool.note}`) : null,
-      out ? pre : h("p", { class: "empty" }, "No output was recorded for this command."),
-      jump
-    );
-  }
-  function renderEvidence(claim2, panel) {
-    if (panel.dataset.ready) return;
-    panel.dataset.ready = "1";
-    if (claim2.evidence.length === 0)
-      panel.append(
-        h("p", { class: "empty" }, "No evidence was found in the transcript or the diff.")
-      );
-    for (const e of claim2.evidence) panel.append(evidenceItem(e));
-  }
-  function evidenceSteps(claim2) {
-    const steps = /* @__PURE__ */ new Set();
-    for (const e of claim2?.evidence ?? []) {
-      if (e.kind === "diff") {
-        for (const s of receipt.steps)
-          if (s.tools.some((t) => t.paths.includes(e.path))) steps.add(s.index);
-      } else steps.add(e.stepIndex);
-    }
-    return steps;
-  }
-  function markTimeline(steps) {
-    for (const el of all("[data-step]"))
-      el.classList.toggle("is-hot", steps.has(Number(el.dataset.step)));
-  }
-  function readStep(i) {
-    const step = receipt.steps.find((s) => s.index === i);
-    if (!step) return "";
-    const parts = step.tools.map((t) => {
-      if (t.command !== null)
-        return `${t.name}: ${t.command.split("\n")[0] ?? ""}${t.exitCode === null ? "" : ` (exit ${t.exitCode})`}`;
-      return t.paths.length ? `${t.name}: ${t.paths.join(", ")}` : t.name;
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const nav = document.getElementById("nav");
+  const onScroll = () => nav.classList.toggle("scrolled", scrollY > 40);
+  addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  }, { threshold: 0.2 });
+  document.querySelectorAll(".reveal, .tl, .nums, .evalt, .flags, .stamps").forEach((el) => io.observe(el));
+
+  // The wall of transcript behind the hero: what reviewers read today.
+  const lines = ["$ npm test 2>&1 | tail -20", "  Tests  8 passed (8)", "Edit test/parser.test.ts", "$ sed -i '' 's/it(/it.skip(/' test/parser.test.ts", "$ npm run build", "  error TS2322: Type 'string' is not assignable to type 'number'.", "$ npm install zod", "  added 1 package in 2s", "Read src/format.ts", "$ git diff --stat", "  2 files changed, 21 insertions(+), 2 deletions(-)", "$ tsc --noEmit", "Edit src/parser.ts", "$ npx vitest run test/parser.test.ts", "  Exit code 1", "Write docs/notes.md", "$ git status --short", "Done. All tests pass. The build succeeds."];
+  const text = Array.from({ length: 120 }, (_, i) => `${String(i + 1).padStart(4, " ")}  ${lines[(i * 7) % lines.length]}`).join("\n");
+  document.getElementById("wall").textContent = `${text}\n${text}`;
+
+  // The receipt leans toward the pointer.
+  const tilt = document.getElementById("tilt");
+  const hero = document.getElementById("top");
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    hero.addEventListener("pointermove", (e) => {
+      const r = tilt.getBoundingClientRect();
+      const dx = (e.clientX - (r.left + r.width / 2)) / innerWidth;
+      const dy = (e.clientY - (r.top + r.height / 2)) / innerHeight;
+      tilt.style.transform = `rotateY(${dx * 14}deg) rotateX(${-dy * 10}deg)`;
     });
-    const text = parts.length ? parts.join("; ") : step.text.split("\n")[0] || "text only";
-    return `${stepLabel2(i)}${step.isSidechain ? " \xB7 sub-agent" : ""} \xB7 ${text.length > 200 ? `${text.slice(0, 199)}\u2026` : text}`;
+    hero.addEventListener("pointerleave", () => { tilt.style.transform = ""; });
   }
-  const rows = all(".claim");
-  const visible = () => rows.filter((r) => !r.hidden);
-  function applyFilter() {
-    for (const row of rows) {
-      const okVerdict = !state.filter || row.dataset.v === state.filter;
-      const okText = !state.query || (row.dataset.text ?? "").includes(state.query);
-      row.hidden = !(okVerdict && okText);
-    }
-    for (const b of all("[data-filter]"))
-      b.setAttribute("aria-pressed", String(b.dataset.filter === state.filter));
-    const none = one("#no-match");
-    if (none) none.hidden = visible().length > 0;
-    writeHash();
+
+  // Timeline ticks for 15 steps.
+  const ticks = document.getElementById("ticks");
+  for (let i = 1; i <= 15; i++) {
+    const x = 20 + (i - 1) * (960 / 14);
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", x); l.setAttribute("x2", x); l.setAttribute("y1", 100); l.setAttribute("y2", 120);
+    l.setAttribute("class", "tick");
+    ticks.append(l);
   }
-  function select(id, opts = {}) {
-    state.selected = id;
-    for (const row of rows) row.classList.toggle("is-selected", Number(row.dataset.id) === id);
-    for (const m of all("mark.span")) m.classList.toggle("is-hot", Number(m.dataset.claim) === id);
-    markTimeline(evidenceSteps(claimsById.get(id)));
-    if (opts.scroll) document.getElementById(`claim-${id}`)?.scrollIntoView({ block: "nearest" });
-    writeHash();
-  }
-  function setOpen(id, open2) {
-    const row = document.getElementById(`claim-${id}`);
-    const panel = document.getElementById(`ev-${id}`);
-    const claim2 = claimsById.get(id);
-    if (!row || !panel || !claim2) return;
-    if (open2) renderEvidence(claim2, panel);
-    panel.hidden = !open2;
-    row.querySelector(".claim-head")?.setAttribute("aria-expanded", String(open2));
-    if (open2) state.open.add(id);
-    else state.open.delete(id);
-    writeHash();
-  }
-  function toggleDetail(button, fill) {
-    const row = document.getElementById(button.getAttribute("aria-controls") ?? "");
-    const cell2 = row?.querySelector("td");
-    if (!row || !cell2) return;
-    const open2 = button.getAttribute("aria-expanded") !== "true";
-    if (open2 && !cell2.dataset.ready) {
-      cell2.dataset.ready = "1";
-      fill(cell2);
-    }
-    row.hidden = !open2;
-    button.setAttribute("aria-expanded", String(open2));
-  }
-  let restoring = false;
-  function writeHash() {
-    if (restoring) return;
-    const p2 = new URLSearchParams();
-    if (state.selected) p2.set("claim", String(state.selected));
-    if (state.filter) p2.set("filter", state.filter);
-    if (state.open.size) p2.set("open", [...state.open].join(","));
-    const hash2 = p2.toString();
-    history.replaceState(null, "", hash2 ? `#${hash2}` : location.pathname + location.search);
-  }
-  function readHash() {
-    const p2 = new URLSearchParams(location.hash.slice(1));
-    restoring = true;
-    const filter = p2.get("filter") ?? "";
-    state.filter = VERDICTS2.includes(filter) ? filter : "";
-    applyFilter();
-    const wanted = new Set(
-      (p2.get("open") ?? "").split(",").map(Number).filter((n) => claimsById.has(n))
-    );
-    for (const id of [...state.open]) if (!wanted.has(id)) setOpen(id, false);
-    for (const id of wanted) setOpen(id, true);
-    const claim2 = Number(p2.get("claim"));
-    if (claimsById.has(claim2)) select(claim2, { scroll: true });
-    restoring = false;
-  }
-  const themeButton = one("#theme");
-  const systemDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
-  function effectiveTheme() {
-    return document.documentElement.dataset.theme ?? (systemDark() ? "dark" : "light");
-  }
-  function showTheme() {
-    if (themeButton)
-      themeButton.textContent = effectiveTheme() === "dark" ? "Light theme" : "Dark theme";
-  }
-  try {
-    const saved = localStorage.getItem("receipts-theme");
-    if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
-  } catch {
-  }
-  showTheme();
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", showTheme);
-  themeButton?.addEventListener("click", () => {
-    const next = effectiveTheme() === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem("receipts-theme", next);
-    } catch {
-    }
-    showTheme();
-  });
-  const copyButton = one("#copy-md");
-  copyButton?.addEventListener("click", () => {
-    const done = () => {
-      copyButton.textContent = "Copied";
-      setTimeout(() => copyButton.textContent = "Copy Markdown", 1600);
-    };
-    const blocked = () => {
-      copyButton.textContent = "Copy blocked by the browser";
-      setTimeout(() => copyButton.textContent = "Copy Markdown", 2400);
-    };
-    navigator.clipboard.writeText(markdown).then(done, blocked);
-  });
-  one("#download-json")?.addEventListener("click", () => {
-    const url2 = URL.createObjectURL(
-      new Blob([JSON.stringify(receipt, null, 2)], { type: "application/json" })
-    );
-    const a = h("a", { href: url2, download: "report.json" });
-    a.click();
-    setTimeout(() => {
-      URL.revokeObjectURL(url2);
-    }, 1e3);
-  });
-  const keysButton = one("#keys");
-  const keysPop = one("#keys-pop");
-  function showKeys(open2) {
-    if (!keysPop || !keysButton) return;
-    keysPop.hidden = !open2;
-    keysButton.setAttribute("aria-expanded", String(open2));
-  }
-  keysButton?.addEventListener("click", () => {
-    showKeys(keysPop?.hidden === true);
-  });
-  document.addEventListener("click", (event) => {
-    const target = event.target;
-    const filter = target.closest("[data-filter]");
-    if (filter) {
-      state.filter = state.filter === filter.dataset.filter ? "" : filter.dataset.filter ?? "";
-      applyFilter();
-      return;
-    }
-    const head = target.closest(".claim-head");
-    const row = head?.closest(".claim");
-    if (row) {
-      const id = Number(row.dataset.id);
-      select(id);
-      setOpen(id, head?.getAttribute("aria-expanded") !== "true");
-      return;
-    }
-    const span = target.closest("mark.span");
-    if (span) {
-      const id = Number(span.dataset.claim);
-      state.filter = "";
-      state.query = "";
-      const input3 = filterInput;
-      if (input3) input3.value = "";
-      applyFilter();
-      setOpen(id, true);
-      select(id, { scroll: true });
-      return;
-    }
-    const jump = target.closest("[data-jump]");
-    if (jump) {
-      const i = Number(jump.dataset.jump);
-      markTimeline(/* @__PURE__ */ new Set([i]));
-      const readout = one("#readout");
-      if (readout) readout.textContent = readStep(i);
-      one("#ticks")?.scrollIntoView({ block: "center" });
-      return;
-    }
-    const flagButton = target.closest("[data-flag]");
-    if (flagButton) {
-      const flag = receipt.flags[Number(flagButton.dataset.flag)];
-      toggleDetail(flagButton, (cell2) => {
-        let path20 = "";
-        let batch = [];
-        const flush = () => {
-          if (batch.length) cell2.append(diffTable(batch, path20));
-        };
-        for (const item of flag?.lines ?? []) {
-          if (item.path !== path20) {
-            flush();
-            path20 = item.path;
-            batch = [];
-          }
-          batch.push(item.line);
-        }
-        flush();
-      });
-      return;
-    }
-    const fileButton = target.closest("[data-file]");
-    if (fileButton) {
-      const file2 = receipt.changes.files[Number(fileButton.dataset.file)];
-      toggleDetail(fileButton, (cell2) => {
-        if (file2) cell2.append(fileDiff(file2.path));
-      });
-      return;
-    }
-    if (keysPop && keysPop.hidden !== true && !target.closest("#keys-pop") && target !== keysButton)
-      showKeys(false);
-  });
-  function hover(id, on) {
-    document.getElementById(`claim-${id}`)?.classList.toggle("is-hot", on);
-    for (const m of all(`mark.span[data-claim="${id}"]`))
-      m.classList.toggle("is-hot", on || id === state.selected);
-  }
-  for (const m of all("mark.span")) {
-    m.addEventListener("mouseenter", () => {
-      hover(Number(m.dataset.claim), true);
-    });
-    m.addEventListener("mouseleave", () => {
-      hover(Number(m.dataset.claim), false);
-    });
-  }
-  for (const row of rows) {
-    row.addEventListener("mouseenter", () => {
-      hover(Number(row.dataset.id), true);
-    });
-    row.addEventListener("mouseleave", () => {
-      hover(Number(row.dataset.id), false);
-    });
-  }
-  const ticks = one("#ticks");
-  ticks?.addEventListener("mousemove", (event) => {
-    const box = ticks.getBoundingClientRect();
-    const n = receipt.steps.length;
-    const i = Math.min(
-      n - 1,
-      Math.max(0, Math.floor((event.clientX - box.left) / box.width * n))
-    );
-    const step = receipt.steps[i];
-    const readout = one("#readout");
-    if (step && readout) readout.textContent = readStep(step.index);
-  });
-  const input2 = filterInput;
-  input2?.addEventListener("input", () => {
-    state.query = input2.value.trim().toLowerCase();
-    applyFilter();
-  });
-  document.addEventListener("keydown", (event) => {
-    const target = event.target;
-    const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
-    if (event.key === "Escape") {
-      state.filter = "";
-      state.query = "";
-      if (input2) input2.value = "";
-      state.selected = 0;
-      for (const row of rows) row.classList.remove("is-selected");
-      for (const m of all("mark.span")) m.classList.remove("is-hot");
-      markTimeline(/* @__PURE__ */ new Set());
-      showKeys(false);
-      if (typing) target.blur();
-      applyFilter();
-      return;
-    }
-    if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
-    if (event.key === "/") {
-      event.preventDefault();
-      input2?.focus();
-    } else if (event.key === "j" || event.key === "k") {
-      const list = visible();
-      if (list.length === 0) return;
-      const at = list.findIndex((r) => Number(r.dataset.id) === state.selected);
-      const next = event.key === "j" ? Math.min(list.length - 1, at + 1) : Math.max(0, at === -1 ? 0 : at - 1);
-      const row = list[next];
-      if (row) {
-        select(Number(row.dataset.id), { scroll: true });
-        row.querySelector(".claim-head")?.focus({ preventScroll: true });
-      }
-    } else if (event.key === "Enter" && state.selected && target.tagName !== "BUTTON") {
-      setOpen(state.selected, !state.open.has(state.selected));
-    } else if (/^[1-5]$/.test(event.key)) {
-      const v = VERDICTS2[Number(event.key) - 1] ?? "";
-      state.filter = state.filter === v ? "" : v;
-      applyFilter();
-    }
-  });
-  readHash();
-  window.addEventListener("hashchange", readHash);
-})();</script>
+
+  // The pinned story: the step in view decides which claim is marked and stamped.
+  const marks = [...document.querySelectorAll("#msg mark")];
+  const stamp = document.getElementById("msgstamp");
+  const steps = [...document.querySelectorAll(".step")];
+  const activate = (step) => {
+    steps.forEach((s) => s.classList.toggle("active", s === step));
+    marks.forEach((m) => m.classList.toggle("on", m.dataset.k === step.dataset.k));
+    stamp.classList.remove("on");
+    void stamp.offsetWidth;
+    stamp.textContent = step.dataset.stamp;
+    stamp.style.color = step.dataset.col;
+    stamp.classList.add("on");
+  };
+  const storyIo = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) activate(e.target);
+  }, { rootMargin: "-45% 0px -45% 0px" });
+  steps.forEach((s) => storyIo.observe(s));
+
+  // Copy the command.
+  const toast = document.getElementById("toast");
+  document.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
+    let msg = "Copied. Paste it in a terminal.";
+    try { await navigator.clipboard.writeText(b.dataset.copy); } catch { msg = "Copy blocked by the browser. Select the command instead."; }
+    toast.textContent = msg; toast.classList.add("on");
+    setTimeout(() => toast.classList.remove("on"), 2200);
+  }));
+})();
+</script>
 </body>
 </html>

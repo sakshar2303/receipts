@@ -32,15 +32,18 @@ export interface LabelledUnit {
 }
 
 /**
- * Who made the labels. "hand" is the author with `npm run label`; the
- * assistant values mark a first pass made by an AI coding assistant from the
- * same evidence, before and after the author reviewed it.
+ * Who made the labels. "hand" is the author with `npm run label`. The other
+ * values mark AI labels: one pass ("assistant"), one pass the author then
+ * reviewed ("assistant-reviewed"), or two independent passes whose
+ * disagreements were settled against the raw tool output ("two-pass").
  */
-export type Provenance = "hand" | "assistant" | "assistant-reviewed";
+export type Provenance = "hand" | "assistant" | "assistant-reviewed" | "two-pass";
 
 export interface LabelFile {
   version: 1;
   provenance?: Provenance;
+  /** For two passes: how often they agreed before settling, and Cohen's kappa. */
+  agreement?: { claims: number; agreed: number; kappa: number };
   units: LabelledUnit[];
 }
 

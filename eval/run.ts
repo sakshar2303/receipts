@@ -6,7 +6,14 @@ import path from "node:path";
 import type { Io } from "../src/commands/check.js";
 import { pickOllamaModel } from "../src/providers/select.js";
 import { VERDICTS } from "../src/types.js";
-import { LABELS_FILE, readLabels, realUnits, receiptForUnit, type Provenance } from "./lib/real.js";
+import {
+  LABELS_FILE,
+  readLabels,
+  realUnits,
+  receiptForUnit,
+  type LabelFile,
+  type Provenance,
+} from "./lib/real.js";
 import { pct, score, type Scores, type ScoredUnit } from "./lib/score.js";
 import { flagScores, runSynthetic } from "./lib/synthetic.js";
 
@@ -20,12 +27,18 @@ const io: Io = {
   cwd: ROOT,
 };
 
+function labelledBy(provenance: Provenance, agreement: LabelFile["agreement"]): string {
+  if (provenance !== "two-pass" || !agreement) return LABELLED_BY[provenance];
+  return `labelled twice by AI agents working independently from the same evidence: the second never saw the first's labels or Receipts' verdicts. The passes agreed on ${agreement.agreed} of ${agreement.claims} claims (Cohen's kappa ${agreement.kappa.toFixed(2)}), and each disagreement was settled against the raw tool output. **The author has not reviewed these labels**, so treat the numbers as provisional.`;
+}
+
 const LABELLED_BY: Record<Provenance, string> = {
   hand: "labelled by hand with `npm run label`.",
   assistant:
     "labelled by an AI coding assistant reading the same evidence. **The author has not reviewed these labels yet**, so treat the numbers as provisional.",
   "assistant-reviewed":
     "given a first-pass label by an AI coding assistant reading the same evidence, then reviewed and corrected by the author.",
+  "two-pass": "labelled twice by AI agents working independently from the same evidence.",
 };
 
 async function realScores(model: string | null): Promise<Scores | null> {
@@ -111,8 +124,9 @@ async function main(): Promise<void> {
     "",
   ];
   if (realPatterns) {
+    const labels = readLabels();
     md.push(
-      `Agent sessions from the author's machine, ${LABELLED_BY[readLabels().provenance ?? "hand"]} The`,
+      `Agent sessions from the author's machine, ${labelledBy(labels.provenance ?? "hand", labels.agreement)} The`,
       "labels and transcripts stay in `eval/private/` and are not committed. Each message is one",
       "turn: a request and the work up to the agent's reply.",
       "",

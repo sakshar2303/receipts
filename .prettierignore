@@ -6,3 +6,4 @@ package-lock.json
 schema/
 test/**/__snapshots__/
 docs/index.html
+docs/report.html

@@ -9,6 +9,9 @@ const PATH = String.raw`\x60?(?<path>(?:\.{0,2}/)?[\w@.\[\]-]+(?:/[\w@.\[\]-]+)*
 const PKG = String.raw`\x60?(?<pkg>@?[a-z0-9][\w.-]*(?:/[\w.-]+)?)\x60?`;
 // "npm run typecheck", "`pnpm lint`": a package-manager prefix before a check name.
 const RUNNER = String.raw`\x60?(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?)?`;
+// Between a check and its result: a space, or a dash or colon in a list
+// ("`npm run typecheck` — passes", "Lint: clean").
+const SEP = String.raw`(?:\s*[\u2014\u2013:]\s*|\s+-\s+|\s+)`;
 // A phrase subject runs to the end of the clause.
 // A dot inside a word ("parser.test.ts") does not end it.
 const PHRASE = String.raw`(?<phrase>(?:[^.;:\n]|\.(?=\S))+?)(?=[.;:\n](?:\s|$)|[;:\n]|,\s|\s+and\s|\s+so\s|$)`;
@@ -38,7 +41,7 @@ const PATTERNS: Pattern[] = [
   p("tests-pass", String.raw`\bno\s+(?:failing|failed)\s+tests\b`),
   p(
     "tests-pass",
-    String.raw`\x60(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test[\w:-]*\x60\s+(?:is\s+|now\s+)*(?:\d+\s*/\s*\d+\s+)?(?:pass(?:es|ed|ing)?|green|clean)\b`,
+    String.raw`\x60(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test[\w:-]*\x60${SEP}(?:is\s+|now\s+)*(?:\d+\s*/\s*\d+\s+)?(?:pass(?:es|ed|ing)?|green|clean)\b`,
   ),
   p("tests-pass", String.raw`\b\d+\s*/\s*\d+\s+(?:tests?\s+)?(?:pass(?:es|ed|ing)?|green)\b`),
   p(
@@ -51,17 +54,17 @@ const PATTERNS: Pattern[] = [
   ),
   p(
     "typecheck-passes",
-    String.raw`(?:\b(?:the\s+)?|${RUNNER})(?:typecheck(?:ing)?|type[- ]check(?:ing)?|tsc|mypy|pyright)\x60?\s+(?:is\s+|now\s+)*(?:pass(?:es|ed)?|clean|succeeds?|succeeded)\b`,
+    String.raw`(?:\b(?:the\s+)?|${RUNNER})(?:typecheck(?:ing)?|type[- ]check(?:ing)?|tsc|mypy|pyright)\x60?${SEP}(?:is\s+|now\s+)*(?:pass(?:es|ed)?|clean|succeeds?|succeeded)\b`,
   ),
   p("typecheck-passes", String.raw`\bno\s+type\s+errors\b`),
   p(
     "lint-passes",
-    String.raw`(?:\b(?:the\s+)?|${RUNNER})(?:lint(?:ing|er)?|eslint|ruff|clippy|prettier)\x60?\s+(?:is\s+|now\s+|checks?\s+)*(?:clean|pass(?:es|ed)?|green|happy)\b`,
+    String.raw`(?:\b(?:the\s+)?|${RUNNER})(?:lint(?:ing|er)?|eslint|ruff|clippy|prettier)\x60?${SEP}(?:is\s+|now\s+|checks?\s+)*(?:clean|pass(?:es|ed)?|green|happy)\b`,
   ),
   p("lint-passes", String.raw`\bno\s+(?:lint|linting|eslint)\s+(?:errors|warnings|issues)\b`),
   p(
     "build-passes",
-    String.raw`(?:\b(?:the\s+)?|${RUNNER})build\x60?\s+(?:now\s+|still\s+)*(?:succeeds|succeeded|passes|passed|is\s+green|is\s+clean|works)\b`,
+    String.raw`(?:\b(?:the\s+)?|${RUNNER})build\x60?${SEP}(?:now\s+|still\s+)*(?:succeeds|succeeded|passes|passed|is\s+green|is\s+clean|works)\b`,
   ),
   p(
     "build-passes",

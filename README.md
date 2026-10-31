@@ -11,7 +11,7 @@ claims in the agent's final message, and checks each one against what actually r
 
 ![The Receipts HTML report for the bundled demo session: nine claims with their verdicts, a stale test claim selected, and the evidence for a contradicted build claim open](docs/assets/report-light.png)
 
-[Live sample report](https://sakshar2303.github.io/receipts/)
+[Project site](https://sakshar2303.github.io/receipts/) · [Live sample report](https://sakshar2303.github.io/receipts/report.html)
 
 ## Why
 
@@ -112,11 +112,12 @@ The Markdown output (`--format md`), ready to paste into a pull request.
 
 [![The demo video: the report open on the contradicted build claim, with its evidence](docs/assets/demo-poster.png)](https://sakshar2303.github.io/receipts/demo.mp4)
 
-A 54-second walkthrough of the bundled demo, with captions and no sound: the terminal
-summary, the evidence for a contradicted and a stale claim, a skipped-test flag, keyboard
-use, and `--fail-on`. [Watch it](https://sakshar2303.github.io/receipts/demo.mp4), or open
-[docs/demo.mp4](docs/demo.mp4). `npm run video` renders it from the demo with headless Chrome
-and ffmpeg.
+A narrated walkthrough of the bundled demo, with subtitles: the terminal summary, the
+evidence for a contradicted and a stale claim, a skipped-test flag, `--fail-on`, and the
+results. [Watch it](https://sakshar2303.github.io/receipts/demo.mp4), or open
+[docs/demo.mp4](docs/demo.mp4). `npm run video` renders it from the demo: headless Chrome
+draws every frame, the macOS `say` voice reads the script, and ffmpeg synthesises the sound
+effects and music, so nothing in it is downloaded or recorded.
 
 ## How it works
 
@@ -143,27 +144,31 @@ exists to keep low.
 
 |                                 | Hand-written cases, patterns |               Real sessions, patterns | Real sessions, patterns + gemma3 (local) |
 | ------------------------------- | ---------------------------: | ------------------------------------: | ---------------------------------------: |
-| **False-verified rate**         |             **0%** (0 of 22) |                      **0%** (0 of 66) |                       **1.3%** (1 of 75) |
-| Verdict accuracy (claims found) |                         100% |                                 90.2% |                                    86.5% |
-| Claim extraction precision      |                         100% |                                 97.6% |                                    88.6% |
-| Claim extraction recall         |                         100% |                                 27.7% |                                    52.7% |
-| Sample                          |       30 sessions, 43 claims | 45 turns from 10 sessions, 296 claims |                                     same |
+| **False-verified rate**         |             **0%** (0 of 22) |                      **0%** (0 of 54) |                         **0%** (0 of 61) |
+| Verdict accuracy (claims found) |                         100% |                                 82.9% |                                    70.7% |
+| Claim extraction precision      |                         100% |                                 97.2% |                                    89.2% |
+| Claim extraction recall         |                         100% |                                 21.3% |                                    42.6% |
+| Sample                          |       30 sessions, 43 claims | 45 turns from 16 sessions, 329 claims |                                     same |
 
-Flags on the hand-written cases: 100% precision and recall over 17 expected flags. On the real
-sessions, 2 of 45 replies held a claim that was truly stale or unverified. The one
-false-verified claim came from the model: it read a sentence about parsing test output as a
-"tests added" claim, and test files had in fact been added in that turn.
+Flags on the hand-written cases: 100% precision and recall over 17 expected flags.
+
+**Every error is on the safe side.** On real sessions Receipts never called a claim verified
+when it was not. Where its verdict was wrong, it said unverified or needs review although
+the transcript held enough evidence: a test run hidden behind an unusual wrapper, a push made
+by another session, or a measured number it treats as behaviour. That costs a reviewer a
+look, never a false sense of safety. Recall is low because agents report most of their work
+in prose ("the parser now accepts quoted commas"), which the English-only patterns rarely
+match and which would be needs-review anyway.
+
+**How the real sessions were labelled.** 45 replies (one turn each) from 16 Claude Code and
+OpenCode sessions on the author's machine. An AI coding assistant labelled them first. A
+second AI agent then labelled the same claims independently, without seeing the first
+labels or Receipts' verdicts. The two agreed on 117 of 138 claims (Cohen's kappa 0.73), and
+each disagreement was settled against the raw tool output. The author has not reviewed the
+labels, so treat these numbers as provisional. Labels and transcripts stay private.
 
 The hand-written cases cover every verdict and flag and were written alongside the code, so
-they show the checks do what they are meant to; they are not an independent measure. The
-real sessions are from the author's machine, one turn per sample. Their labels were made in
-a first pass by an AI coding assistant reading the same evidence and have not yet been
-reviewed by the author, so treat those numbers as provisional. Labels and transcripts stay
-private.
-
-What the numbers say: when Receipts calls a claim verified, it is almost always right. What
-it misses is mostly prose about features ("the parser now accepts quoted commas"), which
-patterns rarely find and which would be needs-review anyway. The patterns are English-only.
+they show the checks do what they are meant to; they are not an independent measure.
 
 ## CI and hooks
 

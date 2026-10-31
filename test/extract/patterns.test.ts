@@ -55,6 +55,10 @@ describe("pattern extractor", () => {
     ["Committed as `a4b5c6d`.", "command-ran", "git commit"],
     ["Five commits pushed to `main`.", "command-ran", "git push"],
     ["Resolved the merge conflict in the lockfile.", "bug-fixed", "the merge conflict"],
+    ["- `npm run typecheck` \u2014 passes.", "typecheck-passes", "typecheck"],
+    ["- `npm test` \u2014 6/6 passing.", "tests-pass", "tests"],
+    ["- `npm run build` - succeeds.", "build-passes", "build"],
+    ["Lint: clean.", "lint-passes", "lint"],
   ])("%s -> %s", (message, type, subject) => {
     const [claim] = extractPatternClaims(message);
     expect(claim?.type).toBe(type);

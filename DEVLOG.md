@@ -569,3 +569,41 @@ with headless Chrome, a drawn cursor and on-screen captions in place of a voice,
 joins the frames into a 54-second, 0.9 MB H.264 file. Everything on screen is the demo.
 macOS system voices were not used for narration, because their licence covers personal use,
 and captions work muted anyway.
+
+## 2026-10-31 18:07 IST: Second labelling pass, project site, narrated video
+
+**The labels got a second, independent pass.** The author asked the assistant to do the
+review it had left for them. An AI reviewing its own labels is not a review, so a separate
+agent labelled the same 45 turns from a blind dump: the final messages, every tool call, the
+diff, and each extracted claim with its type, but not the first labels and not Receipts'
+verdicts. It opened about 125 tool outputs to decide. The passes agreed on 117 of 138 claims
+both labelled (Cohen's kappa 0.73). Most disagreements came from one rule the first pass got
+wrong: it called checkable facts, such as a measured duration or a computed
+price, needs-review, as if they were behaviour, although the output proved them. The rule
+now is that a checkable fact the output proves is verified, and needs-review is only for
+what a person must judge. The other disagreements were settled one by one against the raw
+output. The label file records `provenance: "two-pass"` and the agreement, and
+`eval/results.md` states both. The author has still not reviewed them.
+
+Results with these labels: false-verified 0 of 54 with patterns and 0 of 61 with the local
+model. Verdict accuracy fell (82.9% and 70.7%) because the stricter labels count every case
+where the evidence was enough but Receipts said unverified or needs review. All of those
+errors under-claim; none over-claims. Recall fell too: the second pass counted missed claims
+more generously, and the reported number is the average of the two.
+
+**Recall fix:** a dash or colon between a check and its result ("`npm run typecheck` — passes",
+"Lint: clean") is now read.
+
+**Project site.** `docs/index.html` is now a hand-written landing page with scroll-driven
+effects, still in the report's palette: a receipt that prints and gets stamped, a pinned
+final message whose claims are marked and stamped one by one as you scroll, a timeline that
+draws itself, flags that drop in, counters, and the narrated video. It loads nothing from
+anywhere else, respects reduced motion, and works in both themes and on phones. The report
+itself keeps its calm ledger design and moved to `docs/report.html`.
+
+**Narrated video.** `npm run video` now renders 1920x1080 at 30 fps with a camera that zooms
+and pans across the report, a cursor, verdict stamps with a screen shake, fades and
+subtitles. The narration is the macOS `say` voice (`VOICE=` picks another); every sound
+effect and the music bed are synthesised with ffmpeg in the script, so nothing is downloaded.
+The system voices are licensed for personal, non-commercial use; for a commercial setting,
+record a voice-over from `docs/demo-script.md` instead.

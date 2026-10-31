@@ -105,11 +105,11 @@ export async function openPage(browser) {
   await send("Page.enable");
   await send("Runtime.enable");
   return {
-    async view(width, height, scheme, mobile = false) {
+    async view(width, height, scheme, mobile = false, scale = 2) {
       await send("Emulation.setDeviceMetricsOverride", {
         width,
         height,
-        deviceScaleFactor: 2,
+        deviceScaleFactor: scale,
         mobile,
       });
       await send("Emulation.setEmulatedMedia", {
@@ -136,8 +136,11 @@ export async function openPage(browser) {
       return result.value;
     },
     /** PNG of what is in the viewport now, for video frames. */
-    async shot() {
-      const { data } = await send("Page.captureScreenshot", { format: "png" });
+    async shot(format = "png", quality = 90) {
+      const { data } = await send("Page.captureScreenshot", {
+        format,
+        ...(format === "jpeg" ? { quality } : {}),
+      });
       return Buffer.from(data, "base64");
     },
     /** PNG of the page region from the top of `from` to the bottom of `to`. */

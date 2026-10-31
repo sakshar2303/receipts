@@ -1,6 +1,6 @@
 {
   "name": "receipts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Check a coding agent's claims against the evidence in its transcript and diff.",
   "license": "MIT",
   "author": "Sakshar Dhawan <sakshardhawanfzk@gmail.com>",
@@ -33,7 +33,7 @@
     "eval": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js && prettier --write eval/results.md --log-level warn",
     "label": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/label.js",
     "smoke": "node --no-warnings scripts/smoke.mjs",
-    "sample": "npm run build && node dist/receipts.js check demo --no-llm --format html --out .receipts/sample --quiet && cp .receipts/sample/report.html docs/index.html",
+    "sample": "npm run build && node dist/receipts.js check demo --no-llm --format html --out .receipts/sample --quiet && cp .receipts/sample/report.html docs/report.html",
     "video": "npm run screenshots && node scripts/demo-video.mjs"
   },
   "devDependencies": {

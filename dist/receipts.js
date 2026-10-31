@@ -55,7 +55,7 @@ var require_constants = __commonJS({
     var NO_DOTS_SLASH = `(?!${DOTS_SLASH})`;
     var QMARK_NO_DOT = `[^.${SLASH_LITERAL}]`;
     var STAR = `${QMARK}*?`;
-    var SEP = "/";
+    var SEP2 = "/";
     var POSIX_CHARS = {
       DOT_LITERAL,
       PLUS_LITERAL,
@@ -72,7 +72,7 @@ var require_constants = __commonJS({
       QMARK_NO_DOT,
       STAR,
       START_ANCHOR,
-      SEP
+      SEP: SEP2
     };
     var WINDOWS_CHARS = {
       ...POSIX_CHARS,
@@ -26816,6 +26816,7 @@ function push(out, message, start, end) {
 var PATH = String.raw`\x60?(?<path>(?:\.{0,2}/)?[\w@.\[\]-]+(?:/[\w@.\[\]-]+)*\.(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{1,10}|[\w@.-]+(?:/[\w@.\[\]-]+)+/?)\x60?`;
 var PKG = String.raw`\x60?(?<pkg>@?[a-z0-9][\w.-]*(?:/[\w.-]+)?)\x60?`;
 var RUNNER = String.raw`\x60?(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?)?`;
+var SEP = String.raw`(?:\s*[\u2014\u2013:]\s*|\s+-\s+|\s+)`;
 var PHRASE = String.raw`(?<phrase>(?:[^.;:\n]|\.(?=\S))+?)(?=[.;:\n](?:\s|$)|[;:\n]|,\s|\s+and\s|\s+so\s|$)`;
 var p = (type, source, subject) => ({
   type,
@@ -26830,7 +26831,7 @@ var PATTERNS = [
   p("tests-pass", String.raw`\bno\s+(?:failing|failed)\s+tests\b`),
   p(
     "tests-pass",
-    String.raw`\x60(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test[\w:-]*\x60\s+(?:is\s+|now\s+)*(?:\d+\s*/\s*\d+\s+)?(?:pass(?:es|ed|ing)?|green|clean)\b`
+    String.raw`\x60(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test[\w:-]*\x60${SEP}(?:is\s+|now\s+)*(?:\d+\s*/\s*\d+\s+)?(?:pass(?:es|ed|ing)?|green|clean)\b`
   ),
   p("tests-pass", String.raw`\b\d+\s*/\s*\d+\s+(?:tests?\s+)?(?:pass(?:es|ed|ing)?|green)\b`),
   p(
@@ -26843,17 +26844,17 @@ var PATTERNS = [
   ),
   p(
     "typecheck-passes",
-    String.raw`(?:\b(?:the\s+)?|${RUNNER})(?:typecheck(?:ing)?|type[- ]check(?:ing)?|tsc|mypy|pyright)\x60?\s+(?:is\s+|now\s+)*(?:pass(?:es|ed)?|clean|succeeds?|succeeded)\b`
+    String.raw`(?:\b(?:the\s+)?|${RUNNER})(?:typecheck(?:ing)?|type[- ]check(?:ing)?|tsc|mypy|pyright)\x60?${SEP}(?:is\s+|now\s+)*(?:pass(?:es|ed)?|clean|succeeds?|succeeded)\b`
   ),
   p("typecheck-passes", String.raw`\bno\s+type\s+errors\b`),
   p(
     "lint-passes",
-    String.raw`(?:\b(?:the\s+)?|${RUNNER})(?:lint(?:ing|er)?|eslint|ruff|clippy|prettier)\x60?\s+(?:is\s+|now\s+|checks?\s+)*(?:clean|pass(?:es|ed)?|green|happy)\b`
+    String.raw`(?:\b(?:the\s+)?|${RUNNER})(?:lint(?:ing|er)?|eslint|ruff|clippy|prettier)\x60?${SEP}(?:is\s+|now\s+|checks?\s+)*(?:clean|pass(?:es|ed)?|green|happy)\b`
   ),
   p("lint-passes", String.raw`\bno\s+(?:lint|linting|eslint)\s+(?:errors|warnings|issues)\b`),
   p(
     "build-passes",
-    String.raw`(?:\b(?:the\s+)?|${RUNNER})build\x60?\s+(?:now\s+|still\s+)*(?:succeeds|succeeded|passes|passed|is\s+green|is\s+clean|works)\b`
+    String.raw`(?:\b(?:the\s+)?|${RUNNER})build\x60?${SEP}(?:now\s+|still\s+)*(?:succeeds|succeeded|passes|passed|is\s+green|is\s+clean|works)\b`
   ),
   p(
     "build-passes",
@@ -28608,7 +28609,7 @@ function patchLineStats(lines) {
 // package.json
 var package_default = {
   name: "receipts",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Check a coding agent's claims against the evidence in its transcript and diff.",
   license: "MIT",
   author: "Sakshar Dhawan <sakshardhawanfzk@gmail.com>",
@@ -28641,7 +28642,7 @@ var package_default = {
     eval: "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js && prettier --write eval/results.md --log-level warn",
     label: "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/label.js",
     smoke: "node --no-warnings scripts/smoke.mjs",
-    sample: "npm run build && node dist/receipts.js check demo --no-llm --format html --out .receipts/sample --quiet && cp .receipts/sample/report.html docs/index.html",
+    sample: "npm run build && node dist/receipts.js check demo --no-llm --format html --out .receipts/sample --quiet && cp .receipts/sample/report.html docs/report.html",
     video: "npm run screenshots && node scripts/demo-video.mjs"
   },
   devDependencies: {

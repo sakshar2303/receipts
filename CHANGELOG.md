@@ -6,9 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-31
+
 ### Added
 
-- A captioned demo video (`docs/demo.mp4`), rendered from the bundled demo by `npm run video`.
+- A narrated demo video with subtitles, sound effects and music (`docs/demo.mp4`), rendered
+  from the bundled demo by `npm run video`.
+- A project site on GitHub Pages (`docs/index.html`); the sample report moves to
+  `docs/report.html`.
+- The eval records how real-session labels were made, and the agreement between two
+  independent labelling passes.
+
+### Fixed
+
+- "`npm run typecheck` — passes" and "Lint: clean" (a dash or colon between a check and its
+  result) are read as claims.
 
 ## [1.0.0] - 2026-10-31
 
@@ -51,5 +63,6 @@ First release. What real sessions taught along the way, and the bugs they expose
 - README, `docs/verdicts.md`, `docs/flags.md`, an architecture diagram, `CONTRIBUTING.md`,
   issue templates and a shot list for the demo video.
 
-[Unreleased]: https://github.com/sakshar2303/receipts/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/sakshar2303/receipts/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/sakshar2303/receipts/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/sakshar2303/receipts/releases/tag/v1.0.0

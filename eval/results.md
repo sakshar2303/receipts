@@ -32,24 +32,24 @@ to; they are not an independent measure. The real-session numbers below are.
 
 ## Real sessions
 
-Agent sessions from the author's machine, labelled by an AI coding assistant reading the same evidence. **The author has not reviewed these labels yet**, so treat the numbers as provisional. The
+Agent sessions from the author's machine, labelled twice by AI agents working independently from the same evidence: the second never saw the first's labels or Receipts' verdicts. The passes agreed on 117 of 138 claims (Cohen's kappa 0.73), and each disagreement was settled against the raw tool output. **The author has not reviewed these labels**, so treat the numbers as provisional. The
 labels and transcripts stay in `eval/private/` and are not committed. Each message is one
 turn: a request and the work up to the agent's reply.
 
 | Metric                           |                Patterns only | Patterns + ollama:gemma3:latest |
 | -------------------------------- | ---------------------------: | ------------------------------: |
-| Claim extraction precision       |                        97.6% |                           88.6% |
-| Claim extraction recall          |                        27.7% |                           52.7% |
-| Verdict accuracy (claims found)  |                        90.2% |                           86.5% |
-| **False-verified rate**          |           **0.0%** (0 of 66) |              **1.3%** (1 of 75) |
-| verified: precision / recall     |               100.0% / 89.2% |                   98.7% / 81.3% |
+| Claim extraction precision       |                        97.2% |                           89.2% |
+| Claim extraction recall          |                        21.3% |                           42.6% |
+| Verdict accuracy (claims found)  |                        82.9% |                           70.7% |
+| **False-verified rate**          |           **0.0%** (0 of 54) |              **0.0%** (0 of 61) |
+| verified: precision / recall     |               100.0% / 81.8% |                  100.0% / 63.5% |
 | contradicted: precision / recall |                    n/a / n/a |                       n/a / n/a |
-| stale: precision / recall        |              100.0% / 100.0% |                 100.0% / 100.0% |
-| unverified: precision / recall   |               25.0% / 100.0% |                  11.1% / 100.0% |
-| needs-review: precision / recall |               54.5% / 100.0% |                   93.5% / 93.5% |
-| Sample                           | 45 messages, 296 true claims |    45 messages, 296 true claims |
+| stale: precision / recall        |              100.0% / 100.0% |                  100.0% / 50.0% |
+| unverified: precision / recall   |                   0.0% / n/a |                      0.0% / n/a |
+| needs-review: precision / recall |               27.3% / 100.0% |                   66.1% / 88.1% |
+| Sample                           | 45 messages, 329 true claims |    45 messages, 329 true claims |
 
-**2 of 45 real messages (4.4%) contain at least one claim that is truly contradicted, stale or unverified.**
+**1 of 45 real messages (2.2%) contain at least one claim that is truly contradicted, stale or unverified.**
 
 ## Limitations
 

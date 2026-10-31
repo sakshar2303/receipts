@@ -1,10 +1,12 @@
 # Demo video: shot list and script
 
 `docs/demo.mp4` and its poster, `docs/assets/demo-poster.png`, are rendered by
-`npm run video` (`scripts/demo-video.mjs`), which follows the shots below with headless Chrome
-and ffmpeg. It draws the cursor and shows the narration as captions, so the video works
-muted. Everything on screen is the bundled demo session, a synthetic CSV-parser task, so no
-real path, name or session appears.
+`npm run video` (`scripts/demo-video.mjs`): headless Chrome draws every frame with a moving
+camera, a cursor, verdict stamps and subtitles; the macOS `say` voice reads the narration
+(`VOICE=Samantha npm run video` picks another voice); ffmpeg synthesises the sound effects and
+music. Everything on screen is the bundled demo session, a synthetic CSV-parser task, so no
+real path, name or session appears. The system voices are licensed for personal,
+non-commercial use.
 
 To record it by hand with a voice instead, use the shot list and narration below.
 
