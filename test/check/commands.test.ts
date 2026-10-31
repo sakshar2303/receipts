@@ -71,6 +71,8 @@ describe("test output summaries", () => {
     ["ok  \texample.com/pkg\t0.2s", { passed: 1, failed: 0 }],
     ["--- FAIL: TestParse (0.00s)\nFAIL", { passed: 0, failed: 1 }],
     ["# pass 4\n# fail 0", { passed: 4, failed: 0 }],
+    ["\u2139 tests 11\n\u2139 pass 11\n\u2139 fail 0", { passed: 11, failed: 0 }],
+    ["\u2139 tests 3\n\u2139 pass 2\n\u2139 fail 1", { passed: 2, failed: 1 }],
   ])("%s", (output, expected) => {
     expect(parseTestSummary(output)).toEqual(expected);
   });
@@ -79,6 +81,7 @@ describe("test output summaries", () => {
     expect(parseTestSummary("No test files found, exiting with code 1")).toBe("no-tests");
     expect(parseTestSummary("collected 0 items")).toBe("no-tests");
     expect(parseTestSummary("Tests  0 passed")).toBe("no-tests");
+    expect(parseTestSummary("\u2139 tests 0\n\u2139 pass 0")).toBe("no-tests");
   });
 
   it("returns null when there is no summary", () => {
@@ -208,6 +211,7 @@ describe("inline scripts", () => {
       { path: null, what: "an inline script" },
     ]);
     expect(shellWrites("git checkout -b feature", "/w")).toEqual([]);
+    expect(shellWrites("git checkout -q --orphan clean", "/w")).toEqual([]);
   });
 });
 

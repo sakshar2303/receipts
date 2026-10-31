@@ -36,12 +36,29 @@ describe("tests-pass", () => {
 
   it("is stale when a shell command rewrote code after the run", () => {
     const sed = runCall("sed -i '' 's/a/b/' src/a.ts", 0);
-    expect(check("tests-pass", steps([pass()], [sed])).reason).toContain(
+    const changed = gitChanges([file("src/a.ts")]);
+    expect(check("tests-pass", steps([pass()], [sed]), { changes: changed }).reason).toContain(
       "src/a.ts was changed by sed -i at step 2",
     );
     const script = runCall("python3 - <<'EOF'\nopen('src/a.ts', 'w').write('x')\nEOF", 0);
     expect(check("tests-pass", steps([pass()], [script])).reason).toContain(
       "an inline script at step 2 may have changed files",
+    );
+  });
+
+  it("ignores a shell write to a file the git diff does not show", () => {
+    // An ignored data file deleted after the run cannot change the tested code.
+    const rm = runCall("rm -f data.json", 0);
+    const changes = gitChanges([file("src/a.ts")]);
+    expect(check("tests-pass", steps([pass()], [rm]), { changes }).verdict).toBe("verified");
+    // Without a git diff there is no way to tell, so it still counts.
+    const transcript = { ...changes, source: "transcript" as const };
+    expect(check("tests-pass", steps([pass()], [rm]), { changes: transcript }).verdict).toBe(
+      "stale",
+    );
+    // An edit the agent made itself always counts.
+    expect(check("tests-pass", steps([pass()], [editCall("data.json")]), { changes }).verdict).toBe(
+      "stale",
     );
   });
 

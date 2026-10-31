@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An agent skill, `skills/receipts/SKILL.md`, for checking a reply before sending it.
 - `receipts mcp`: an MCP server over stdio with one tool, `check_session`.
 - `check --message <file|->` to check a draft reply, `--turns last`, and `check --watch`.
+- README, `docs/verdicts.md`, `docs/flags.md`, an architecture diagram, `CONTRIBUTING.md`,
+  issue templates and a shot list for the demo video.
 
 ### Changed
 
@@ -52,5 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `gh repo create --push` counts as a push.
 - "Updated `a` and `b`" yields a claim for each file.
 - A function call assigned to a key-like name is no longer flagged as a secret.
+- `node --test` results in the default reporter format (`ℹ pass 11`) are read.
+- With a git diff, a shell command that changed only an ignored file (or one put back as it
+  was) no longer makes a claim stale, and `git checkout --orphan` is not counted as a write.
 - "the fixed version" is not a bug-fix claim, and "installed hai" or "installed
   successfully" is not a package.

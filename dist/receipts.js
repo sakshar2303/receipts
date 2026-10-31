@@ -5347,15 +5347,16 @@ function isFilteredTestRun(segment) {
 }
 
 // src/check/outcome.ts
-var NO_TESTS = /\bno tests? (?:found|ran|collected|to run|were run)|\b0 tests? (?:ran|passed|run)|\bcollected 0 items|\bno test files found|^\s*Tests\s+0\b|\btests?:\s+0 total/im;
+var NO_TESTS = /\bno tests? (?:found|ran|collected|to run|were run)|\b0 tests? (?:ran|passed|run)|\bcollected 0 items|\bno test files found|^\s*Tests\s+0\b|^[#\u2139]\s+tests\s+0\b|\btests?:\s+0 total/im;
 var COUNTERS = [
   [/(\d+)\s+(?:tests?\s+)?passed\b/gi, "passed"],
   [/(\d+)\s+passing\b/gi, "passed"],
   [/(\d+)\s+(?:tests?\s+)?failed\b/gi, "failed"],
   [/(\d+)\s+failing\b/gi, "failed"],
   [/(\d+)\s+errors?\s+during\s+collection/gi, "failed"],
-  [/^#\s+pass\s+(\d+)/gim, "passed"],
-  [/^#\s+fail\s+(\d+)/gim, "failed"]
+  // node --test: "# pass 4" with the TAP reporter, "ℹ pass 4" with the default spec reporter.
+  [/^[#\u2139]\s+pass\s+(\d+)/gim, "passed"],
+  [/^[#\u2139]\s+fail\s+(\d+)/gim, "failed"]
 ];
 function parseTestSummary(output2) {
   if (NO_TESTS.test(output2)) return "no-tests";
@@ -5484,7 +5485,7 @@ var UNKNOWN_WRITERS = [
   ],
   [/^(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:format|fmt|fix|lint:fix)\b/, "a formatter"],
   [
-    /^git\s+(?:checkout(?!\s+-[bB]\b)|restore|apply|am|stash\s+(?:pop|apply)|reset\s+--hard|merge|pull|rebase|cherry-pick|revert)\b/,
+    /^git\s+(?:checkout(?!.*\s(?:-[bB]|--orphan)\b)|restore|apply|am|stash\s+(?:pop|apply)|reset\s+--hard|merge|pull|rebase|cherry-pick|revert)\b/,
     "a git command"
   ],
   [/^patch\b/, "patch"]
@@ -5956,7 +5957,7 @@ function checkLastRun(kind, claim2, ctx) {
       reason: `Last test run (${where}) ran only part of the suite.`
     };
   }
-  const later = activity.codeWritesAfter(last.order, { ignoreTests: kind === "build" });
+  const later = activity.codeWritesAfter(last.order, { ignoreTests: kind === "build" }).filter((w) => couldChangeCode(w, ctx));
   const first = later[0];
   if (first) {
     evidence.push(...later.slice(0, 3).map(writeRef));
@@ -5971,6 +5972,13 @@ function checkLastRun(kind, claim2, ctx) {
     evidence,
     reason: `Last ${label} run (${where}) ${why}${afterLastCodeEdit(activity, last.order)}.`
   };
+}
+function couldChangeCode(write, ctx) {
+  if (write.via !== "shell" || write.path === null || ctx.changes.source !== "git") return true;
+  return matchPaths(
+    write.path,
+    ctx.changes.files.map((f) => f.path)
+  ).length > 0;
 }
 function afterLastCodeEdit(activity, before) {
   const last = activity.codeWritesAfter(-1).filter((w) => w.order < before).at(-1);
@@ -28626,7 +28634,7 @@ var package_default = {
     check: "npm run typecheck && npm run lint && npm run build && npm run test && npm run smoke",
     schema: "UPDATE_SCHEMA=1 vitest run test/report",
     screenshots: "npm run build && node scripts/screenshots.mjs",
-    eval: "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js",
+    eval: "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js && prettier --write eval/results.md --log-level warn",
     label: "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/label.js",
     smoke: "node --no-warnings scripts/smoke.mjs"
   },

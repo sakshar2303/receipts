@@ -504,3 +504,40 @@ error and waits for the next change.
 
 **Codex CLI reader: skipped.** There is no `~/.codex` on this machine, so there is nothing
 real to inspect, and the spec says not to guess formats.
+
+## 2026-10-31 14:51 IST: Milestone 11, README and assets
+
+Wrote the README from real output: every command and number in it was run or measured, and
+every claim it makes about behaviour was checked against the code. Three of my first-draft
+sentences were wrong and were corrected before commit: the demo does not promise "no network"
+(a Groq key in the environment would be used), the database copy is temporary rather than
+read-only (it is opened read-write so the write-ahead log folds in), and `doctor` shows keys,
+not settings. Also new: `docs/verdicts.md`, `docs/flags.md`, a hand-drawn SVG architecture
+diagram with a dark variant, `CONTRIBUTING.md`, issue templates (bugs and claim patterns), and
+`docs/demo-script.md`, a timed shot list for the demo video, which only uses the bundled
+demo. A test checks that every verdict, claim type and flag is documented and that every
+local link and image in the docs exists.
+
+The README was reviewed rendered through GitHub's Markdown API, in light and dark. The first
+diagram ran past its canvas and one label overflowed its box; both fixed.
+
+**Re-running the eval for the README found three more things.**
+
+- **`node --test` output was not read in its default format.** Node prints `ℹ pass 11` with
+  its spec reporter and `# pass 11` with TAP; only TAP was parsed. Two real claims ("All 11
+  tests pass", "all 21 tests still pass") were unverified for that reason. Fixed, with
+  `ℹ tests 0` counted as no tests.
+- **That fix exposed a false stale.** After the passing run, the agent deleted `data.json`,
+  a gitignored runtime file, and rebuilt its history with `git checkout --orphan` on the same
+  tree. Both counted as code changes. Now `--orphan` is not a write, and with a git diff a
+  shell write to a file the diff does not show cannot make a claim stale. The agent's own
+  edits always count, and without git every write still counts.
+- **The real-session eval is not fully reproducible.** One labelled session's repository
+  was moved since labelling, so its diff is gone and two claims that relied on it dropped to
+  unverified. This is now a listed limitation.
+
+Final numbers, in the README: false-verified 0 of 22 on the hand-written cases, 0 of 66 on
+real sessions with patterns, 1 of 75 with patterns and gemma3; verdict accuracy 90.2% and
+86.5% on real sessions.
+
+The demo video is not recorded yet; the README has no Demo section until it is.

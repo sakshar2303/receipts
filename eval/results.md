@@ -40,12 +40,12 @@ turn: a request and the work up to the agent's reply.
 | -------------------------------- | ---------------------------: | ------------------------------: |
 | Claim extraction precision       |                        97.6% |                           88.6% |
 | Claim extraction recall          |                        27.7% |                           52.7% |
-| Verdict accuracy (claims found)  |                        90.2% |                           87.2% |
-| **False-verified rate**          |           **0.0%** (0 of 66) |              **1.3%** (1 of 76) |
-| verified: precision / recall     |               100.0% / 89.2% |                   98.7% / 82.4% |
+| Verdict accuracy (claims found)  |                        90.2% |                           86.5% |
+| **False-verified rate**          |           **0.0%** (0 of 66) |              **1.3%** (1 of 75) |
+| verified: precision / recall     |               100.0% / 89.2% |                   98.7% / 81.3% |
 | contradicted: precision / recall |                    n/a / n/a |                       n/a / n/a |
 | stale: precision / recall        |              100.0% / 100.0% |                 100.0% / 100.0% |
-| unverified: precision / recall   |               25.0% / 100.0% |                  11.8% / 100.0% |
+| unverified: precision / recall   |               25.0% / 100.0% |                  11.1% / 100.0% |
 | needs-review: precision / recall |               54.5% / 100.0% |                   93.5% / 93.5% |
 | Sample                           | 45 messages, 296 true claims |    45 messages, 296 true claims |
 
@@ -57,4 +57,6 @@ turn: a request and the work up to the agent's reply.
 - Labels are one judgement, made while looking at Receipts' own verdict and evidence.
 - Extraction recall counts claims the labeller noticed were missed; claims nobody noticed are not counted.
 - The patterns are English-only. A message in another language yields few or no claims.
+- Real sessions are re-checked against their repositories as they are now. A repository moved or
+  deleted since labelling loses its git diff, and claims that relied on it can drop to unverified.
 - Staleness is about files, not meaning: an edit that cannot affect a test still makes it stale.

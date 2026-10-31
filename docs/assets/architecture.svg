@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1010 250" width="1010" height="250" role="img" aria-labelledby="t d">
+<title id="t">How Receipts works</title>
+<desc id="d">Five stages from left to right: ingest, normalise, extract, check and flag, report.</desc>
+<style>
+.bg{fill:#fbfaf7}.box{fill:#fbfaf7;stroke:#161514;stroke-width:1}.rule{stroke:#e3ded3;stroke-width:1}
+.arrow{stroke:#161514;stroke-width:1;fill:none}.head{fill:#161514}
+.name{font:600 18px "Iowan Old Style","Charter",Georgia,serif;fill:#161514}
+.path{font:12px ui-monospace,"SF Mono",Menlo,monospace;fill:#6b665d}
+.cap{font:13px -apple-system,"Segoe UI",system-ui,sans-serif;fill:#161514}
+.step{font:12px ui-monospace,"SF Mono",Menlo,monospace;fill:#6b665d;letter-spacing:.08em}
+@media (prefers-color-scheme:dark){.bg,.box{fill:#121211}.box{stroke:#e9e6df}.rule{stroke:#2b2925}
+.arrow{stroke:#e9e6df}.head{fill:#e9e6df}.name,.cap{fill:#e9e6df}.path,.step{fill:#a19b90}}
+</style>
+<rect class="bg" width="1010" height="250"/>
+<text class="step" x="20" y="34">01</text>
+<rect class="box" x="20.5" y="48.5" width="169" height="70" rx="2"/>
+<text class="name" x="32" y="78">Ingest</text>
+<text class="path" x="32" y="100">src/ingest</text>
+<line class="rule" x1="20" y1="138.5" x2="190" y2="138.5"/>
+<text class="cap" x="20" y="162">Reads Claude Code JSONL</text>
+<text class="cap" x="20" y="181">and OpenCode SQLite,</text>
+<text class="cap" x="20" y="200">sub-agents included.</text>
+<path class="arrow" d="M194 83.5H210"/>
+<path class="head" d="M216 83.5l-7 -4v8z"/>
+<text class="step" x="220" y="34">02</text>
+<rect class="box" x="220.5" y="48.5" width="169" height="70" rx="2"/>
+<text class="name" x="232" y="78">Normalise</text>
+<text class="path" x="232" y="100">types.ts, src/diff</text>
+<line class="rule" x1="220" y1="138.5" x2="390" y2="138.5"/>
+<text class="cap" x="220" y="162">One session model: steps,</text>
+<text class="cap" x="220" y="181">tool calls, exit codes,</text>
+<text class="cap" x="220" y="200">edits and the git diff.</text>
+<path class="arrow" d="M394 83.5H410"/>
+<path class="head" d="M416 83.5l-7 -4v8z"/>
+<text class="step" x="420" y="34">03</text>
+<rect class="box" x="420.5" y="48.5" width="169" height="70" rx="2"/>
+<text class="name" x="432" y="78">Extract</text>
+<text class="path" x="432" y="100">src/extract</text>
+<line class="rule" x1="420" y1="138.5" x2="590" y2="138.5"/>
+<text class="cap" x="420" y="162">Finds the claims in the</text>
+<text class="cap" x="420" y="181">final message: patterns,</text>
+<text class="cap" x="420" y="200">and a free model if asked.</text>
+<path class="arrow" d="M594 83.5H610"/>
+<path class="head" d="M616 83.5l-7 -4v8z"/>
+<text class="step" x="620" y="34">04</text>
+<rect class="box" x="620.5" y="48.5" width="169" height="70" rx="2"/>
+<text class="name" x="632" y="78">Check &#43; flag</text>
+<text class="path" x="632" y="100">src/check, src/flags</text>
+<line class="rule" x1="620" y1="138.5" x2="790" y2="138.5"/>
+<text class="cap" x="620" y="162">Deterministic checkers</text>
+<text class="cap" x="620" y="181">give each claim a verdict;</text>
+<text class="cap" x="620" y="200">detectors raise flags.</text>
+<path class="arrow" d="M794 83.5H810"/>
+<path class="head" d="M816 83.5l-7 -4v8z"/>
+<text class="step" x="820" y="34">05</text>
+<rect class="box" x="820.5" y="48.5" width="169" height="70" rx="2"/>
+<text class="name" x="832" y="78">Report</text>
+<text class="path" x="832" y="100">src/report</text>
+<line class="rule" x1="820" y1="138.5" x2="990" y2="138.5"/>
+<text class="cap" x="820" y="162">Terminal, HTML, JSON and</text>
+<text class="cap" x="820" y="181">Markdown, each verdict</text>
+<text class="cap" x="820" y="200">linked to its evidence.</text>
+</svg>

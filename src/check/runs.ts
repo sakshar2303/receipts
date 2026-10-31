@@ -1,6 +1,7 @@
 import type { CheckResult, Claim, EvidenceRef } from "../types.js";
 import {
   describeWrite,
+  type WriteEvent,
   runRef,
   shortCommand,
   stepLabel,
@@ -9,6 +10,7 @@ import {
 } from "./activity.js";
 import { isFilteredTestRun, type CheckKind } from "./commands.js";
 import type { CheckContext } from "./context.js";
+import { matchPaths } from "./paths.js";
 
 const LABEL: Record<CheckKind, string> = {
   test: "test",
@@ -68,7 +70,9 @@ export function checkLastRun(kind: CheckKind, claim: Claim, ctx: CheckContext): 
     };
   }
 
-  const later = activity.codeWritesAfter(last.order, { ignoreTests: kind === "build" });
+  const later = activity
+    .codeWritesAfter(last.order, { ignoreTests: kind === "build" })
+    .filter((w) => couldChangeCode(w, ctx));
   const first = later[0];
   if (first) {
     evidence.push(...later.slice(0, 3).map(writeRef));
@@ -83,6 +87,21 @@ export function checkLastRun(kind: CheckKind, claim: Claim, ctx: CheckContext): 
     evidence,
     reason: `Last ${label} run (${where}) ${why}${afterLastCodeEdit(activity, last.order)}.`,
   };
+}
+
+/**
+ * With a git diff, a shell write to a file git does not show (an ignored data
+ * file, a log, a file put back as it was) cannot be why the final code differs
+ * from the code that was tested. Edits the agent made itself always count.
+ */
+function couldChangeCode(write: WriteEvent, ctx: CheckContext): boolean {
+  if (write.via !== "shell" || write.path === null || ctx.changes.source !== "git") return true;
+  return (
+    matchPaths(
+      write.path,
+      ctx.changes.files.map((f) => f.path),
+    ).length > 0
+  );
 }
 
 function afterLastCodeEdit(activity: Activity, before: number): string {

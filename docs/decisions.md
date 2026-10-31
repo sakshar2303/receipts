@@ -238,3 +238,11 @@ npm 11 installs a git package without a `prepare` script as a symlink to its tem
 clone, with no command linked. Adding `prepare` back would make every install fetch the
 development toolchain again. The documented global install is
 `npm install -g --install-links github:sakshar2303/receipts`, which copies the package.
+
+## Staleness ignores shell writes git does not see
+
+A passing check goes stale when code changes after it. With a git diff, a shell write to a
+file that is not in the diff did not change the final code: the file is ignored (a data
+file, a log) or was put back as it was. Such writes no longer make a claim stale. The agent's
+own edit records always count, and without a git diff every write still counts, because
+there is nothing to compare with.

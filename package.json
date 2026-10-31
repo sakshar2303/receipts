@@ -30,7 +30,7 @@
     "check": "npm run typecheck && npm run lint && npm run build && npm run test && npm run smoke",
     "schema": "UPDATE_SCHEMA=1 vitest run test/report",
     "screenshots": "npm run build && node scripts/screenshots.mjs",
-    "eval": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js",
+    "eval": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js && prettier --write eval/results.md --log-level warn",
     "label": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/label.js",
     "smoke": "node --no-warnings scripts/smoke.mjs"
   },

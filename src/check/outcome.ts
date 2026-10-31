@@ -17,7 +17,7 @@ interface Summary {
 }
 
 const NO_TESTS =
-  /\bno tests? (?:found|ran|collected|to run|were run)|\b0 tests? (?:ran|passed|run)|\bcollected 0 items|\bno test files found|^\s*Tests\s+0\b|\btests?:\s+0 total/im;
+  /\bno tests? (?:found|ran|collected|to run|were run)|\b0 tests? (?:ran|passed|run)|\bcollected 0 items|\bno test files found|^\s*Tests\s+0\b|^[#\u2139]\s+tests\s+0\b|\btests?:\s+0 total/im;
 
 const COUNTERS: [RegExp, "passed" | "failed"][] = [
   [/(\d+)\s+(?:tests?\s+)?passed\b/gi, "passed"],
@@ -25,8 +25,9 @@ const COUNTERS: [RegExp, "passed" | "failed"][] = [
   [/(\d+)\s+(?:tests?\s+)?failed\b/gi, "failed"],
   [/(\d+)\s+failing\b/gi, "failed"],
   [/(\d+)\s+errors?\s+during\s+collection/gi, "failed"],
-  [/^#\s+pass\s+(\d+)/gim, "passed"],
-  [/^#\s+fail\s+(\d+)/gim, "failed"],
+  // node --test: "# pass 4" with the TAP reporter, "ℹ pass 4" with the default spec reporter.
+  [/^[#\u2139]\s+pass\s+(\d+)/gim, "passed"],
+  [/^[#\u2139]\s+fail\s+(\d+)/gim, "failed"],
 ];
 
 /** Reads pass and fail counts from the summary lines of common test runners. */

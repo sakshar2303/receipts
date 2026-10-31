@@ -1,0 +1,39 @@
+name: Bug report
+description: Receipts gave a wrong verdict, crashed, or printed something wrong.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste a real transcript. It can hold code, paths and secrets.
+        A few lines you write by hand that show the same problem are best.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran and what Receipts printed.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: claim
+    attributes:
+      label: The claim and its evidence
+      description: The sentence from the final message, and the commands or edits that should have decided its verdict.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `receipts --version` and `node --version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Session source
+      options: [Claude Code, OpenCode-format database, The bundled demo, Other]

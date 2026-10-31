@@ -22,7 +22,7 @@ const UNKNOWN_WRITERS: [RegExp, string][] = [
   ],
   [/^(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:format|fmt|fix|lint:fix)\b/, "a formatter"],
   [
-    /^git\s+(?:checkout(?!\s+-[bB]\b)|restore|apply|am|stash\s+(?:pop|apply)|reset\s+--hard|merge|pull|rebase|cherry-pick|revert)\b/,
+    /^git\s+(?:checkout(?!.*\s(?:-[bB]|--orphan)\b)|restore|apply|am|stash\s+(?:pop|apply)|reset\s+--hard|merge|pull|rebase|cherry-pick|revert)\b/,
     "a git command",
   ],
   [/^patch\b/, "patch"],

@@ -1,0 +1,32 @@
+name: Claim pattern
+description: A sentence agents write that Receipts misses, or reads as the wrong kind of claim.
+labels: [claim-pattern]
+body:
+  - type: textarea
+    id: sentence
+    attributes:
+      label: The sentence
+      description: Exactly as an agent wrote it. Replace any private names or paths.
+      placeholder: "`npm run typecheck` — passes"
+    validations:
+      required: true
+  - type: dropdown
+    id: problem
+    attributes:
+      label: What Receipts does
+      options:
+        - Finds no claim
+        - Finds the wrong claim type
+        - Finds a claim where there is none
+    validations:
+      required: true
+  - type: input
+    id: type
+    attributes:
+      label: The claim type it should be
+      description: One of the types in docs/verdicts.md, such as tests-pass or file-changed.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: The evidence that should decide it
+      description: The command and its exit code, or the file in the diff.

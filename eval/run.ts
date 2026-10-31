@@ -137,6 +137,8 @@ async function main(): Promise<void> {
     "- Labels are one judgement, made while looking at Receipts' own verdict and evidence.",
     "- Extraction recall counts claims the labeller noticed were missed; claims nobody noticed are not counted.",
     "- The patterns are English-only. A message in another language yields few or no claims.",
+    "- Real sessions are re-checked against their repositories as they are now. A repository moved or",
+    "  deleted since labelling loses its git diff, and claims that relied on it can drop to unverified.",
     "- Staleness is about files, not meaning: an edit that cannot affect a test still makes it stale.",
     "",
   );
