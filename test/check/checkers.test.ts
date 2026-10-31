@@ -101,6 +101,8 @@ describe("tests-pass", () => {
   it("does not accept a filtered run for 'all tests pass'", () => {
     const r = check("tests-pass", steps([pass("npx vitest run test/parser.test.ts")]));
     expect(r.reason).toContain("ran only part of the suite");
+    const limited = check("tests-pass", steps([pass("perl -e 'alarm 25; exec @ARGV' npm test")]));
+    expect(limited.verdict).toBe("verified");
     const scoped = check("tests-pass", steps([pass("npx vitest run test/parser.test.ts")]), {
       text: "The parser tests pass",
     });
@@ -267,6 +269,15 @@ describe("command-ran", () => {
         subject: "git commit",
       }).verdict,
     ).toBe("verified");
+  });
+
+  it("counts gh repo create --push as a push", () => {
+    const create = runCall("gh repo create me/app --public --source=. --push", 0);
+    expect(check("command-ran", steps([create]), { subject: "git push" }).verdict).toBe("verified");
+    const noPush = runCall("gh repo create me/app --public", 0);
+    expect(check("command-ran", steps([noPush]), { subject: "git push" }).verdict).toBe(
+      "unverified",
+    );
   });
 
   it("matches a named command and is unverified when none ran", () => {

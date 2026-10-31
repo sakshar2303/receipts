@@ -6,6 +6,7 @@ import type { Claim } from "../types.js";
 import { extractLlmClaims } from "./llm.js";
 import { mergeClaims } from "./merge.js";
 import { extractPatternClaims, type DraftClaim } from "./patterns.js";
+import { isReported } from "./voice.js";
 
 export interface ExtractOptions {
   noLlm?: boolean;
@@ -29,7 +30,7 @@ export async function extractClaims(
   message: string,
   options: ExtractOptions,
 ): Promise<ExtractResult> {
-  const pattern = extractPatternClaims(message);
+  const pattern = extractPatternClaims(message).filter((c) => isReported(message, c.span));
   if (options.noLlm) return { claims: mergeClaims(pattern, []), model: null };
 
   // An explicit --model that fails the free guard is a usage error, not a fallback.
@@ -61,5 +62,6 @@ export async function extractClaims(
       notice: `${error.message} Continuing with patterns only.`,
     };
   }
-  return { claims: mergeClaims(pattern, llm), model: formatModelRef(ref) };
+  const reported = llm.filter((c) => isReported(message, c.span));
+  return { claims: mergeClaims(pattern, reported), model: formatModelRef(ref) };
 }

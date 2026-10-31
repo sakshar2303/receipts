@@ -173,3 +173,26 @@ The report must make no external requests. Rather than trust that transcript tex
 contains a URL, the escaping makes it impossible for one to appear: HTML text writes "://"
 as "&#58;//", and the embedded JSON writes "/" as "\/". The browser shows and parses the
 original text unchanged.
+
+## The real-data eval unit is one turn
+
+Real sessions hold many requests, each ending in a message that reports what was done.
+Scoring only the last message of each session would give 15 samples, most of them long
+summaries. Each turn (a human request and the work up to the agent's reply) is scored on
+its own, with `--turns` selecting it, so the sample is every reply that followed real work.
+
+## Who made the labels is part of the result
+
+The label file records its provenance: `hand` (the author with `npm run label`),
+`assistant` (a first pass by an AI coding assistant reading the same evidence) or
+`assistant-reviewed`. `eval/results.md` states it next to the numbers, because a label
+made by the same kind of system that wrote the transcripts is weaker evidence than a
+person's. Real sessions are only ever sent to a local model, never a hosted one.
+
+## Quoted words are not claims
+
+A claim counts only when the agent reports its own work. Words inside quotation marks or
+a Markdown blockquote (an example, a commit title, a drafted post), a sentence that
+announces the next step ("Let me verify the build") and a conditional sentence ("When it's
+pushed, tell me") are dropped for both extractors. On real data, two quoted examples had
+been marked verified.

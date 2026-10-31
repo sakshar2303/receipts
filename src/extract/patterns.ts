@@ -114,7 +114,8 @@ const PATTERNS: Pattern[] = [
     String.raw`\b(?:no|zero)\s+(?:errors|warnings|issues|problems)\b|\b(?:without\s+(?:any\s+)?errors|error[- ]free)\b`,
   ),
   // "Fixed and pushed" names no bug; the subject must not start with a conjunction.
-  p("bug-fixed", String.raw`\b(?:fixed|fixes)\s+(?!and\b|&|,)${PHRASE}`),
+  // "the fixed version" uses the word as an adjective.
+  p("bug-fixed", String.raw`(?<!\b(?:the|a|an)\s+)\b(?:fixed|fixes)\s+(?!and\b|&|,)${PHRASE}`),
   // "resolved" and "patched" also describe paths and versions; require a problem noun.
   p(
     "bug-fixed",
@@ -140,9 +141,10 @@ const PATTERNS: Pattern[] = [
 // pass" is still a test claim.
 const NEGATED =
   /\b(?:not|never|no\s+longer|\w+n't|unable|cannot|if|once|until|will|would|might|may|please|try|you\s+can|you\s+should|to\s+verify)\b/i;
-// A sentence that opens with a condition ("Once you install zod, the build succeeds")
-// makes every clause in it conditional.
-const CONDITIONAL_SENTENCE = /^(?:if|once|unless|as\s+soon\s+as|after\s+you|when\s+you)\b/i;
+// A sentence that opens with a condition ("Once you install zod, the build succeeds",
+// "When it's pushed, tell me") makes every clause in it conditional.
+export const CONDITIONAL_SENTENCE =
+  /^(?:if|once|unless|as\s+soon\s+as|after\s+you|when\s+you|when\s+(?:it|they|this|that)(?:'s|'re|\s+(?:is|are)))\b/i;
 const CLAUSE_BREAK = /,|;|\band\b|\bbut\b|\bso\b|\balso\b/gi;
 
 export function extractPatternClaims(message: string): DraftClaim[] {
@@ -226,6 +228,8 @@ function subjectOf(type: ClaimType, groups: Record<string, string | undefined>):
     .replace(/^\x60|\x60$/g, "")
     .replace(/[.,;:]+$/, "");
   if (subject) return subject;
+  // "Nothing else changed" names no scope; the checker then asks a person.
+  if (type === "scope") return "";
   if (type === "tests-pass" || type === "tests-added") return "tests";
   return type.replace(/-passes$/, "");
 }

@@ -6,7 +6,7 @@ import path from "node:path";
 import type { Io } from "../src/commands/check.js";
 import { pickOllamaModel } from "../src/providers/select.js";
 import { VERDICTS } from "../src/types.js";
-import { LABELS_FILE, readLabels, realUnits, receiptForUnit } from "./lib/real.js";
+import { LABELS_FILE, readLabels, realUnits, receiptForUnit, type Provenance } from "./lib/real.js";
 import { pct, score, type Scores, type ScoredUnit } from "./lib/score.js";
 import { flagScores, runSynthetic } from "./lib/synthetic.js";
 
@@ -18,6 +18,14 @@ const io: Io = {
   // Only a local model is ever used; hosted keys are dropped on purpose.
   env: process.env.OLLAMA_HOST ? { OLLAMA_HOST: process.env.OLLAMA_HOST } : {},
   cwd: ROOT,
+};
+
+const LABELLED_BY: Record<Provenance, string> = {
+  hand: "labelled by hand with `npm run label`.",
+  assistant:
+    "labelled by an AI coding assistant reading the same evidence. **The author has not reviewed these labels yet**, so treat the numbers as provisional.",
+  "assistant-reviewed":
+    "given a first-pass label by an AI coding assistant reading the same evidence, then reviewed and corrected by the author.",
 };
 
 async function realScores(model: string | null): Promise<Scores | null> {
@@ -104,9 +112,9 @@ async function main(): Promise<void> {
   ];
   if (realPatterns) {
     md.push(
-      "Agent sessions from the author's machine, labelled by hand with `npm run label`. The labels",
-      "and transcripts stay in `eval/private/` and are not committed. Each message is one turn: a",
-      "request and the work up to the agent's reply.",
+      `Agent sessions from the author's machine, ${LABELLED_BY[readLabels().provenance ?? "hand"]} The`,
+      "labels and transcripts stay in `eval/private/` and are not committed. Each message is one",
+      "turn: a request and the work up to the agent's reply.",
       "",
       table([
         ["Patterns only", realPatterns],
@@ -126,7 +134,7 @@ async function main(): Promise<void> {
     "## Limitations",
     "",
     "- Small samples. The real-session numbers come from one person's sessions with two agents.",
-    "- Labels are one person's judgement, made while looking at Receipts' own verdict and evidence.",
+    "- Labels are one judgement, made while looking at Receipts' own verdict and evidence.",
     "- Extraction recall counts claims the labeller noticed were missed; claims nobody noticed are not counted.",
     "- The patterns are English-only. A message in another language yields few or no claims.",
     "- Staleness is about files, not meaning: an edit that cannot affect a test still makes it stale.",

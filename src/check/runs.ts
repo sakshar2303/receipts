@@ -94,7 +94,8 @@ function afterLastCodeEdit(activity: Activity, before: number): string {
 }
 
 const COMMAND_SUBJECTS: [RegExp, RegExp][] = [
-  [/^git push$/, /^git\s+(?:-[Cc]\s+\S+\s+)*push\b/],
+  // `gh repo create --push` creates the remote and pushes in one command.
+  [/^git push$/, /^git\s+(?:-[Cc]\s+\S+\s+)*push\b|^gh\s+repo\s+create\b.*\s--push\b/],
   [/^git commit$/, /^git\s+(?:-[Cc]\s+\S+\s+)*commit\b/],
   [/migrat/i, /migrat|db:migrate|alembic\s+upgrade|prisma\s+(?:migrate|db\s+push)/i],
   [/seed/i, /\bseed/i],

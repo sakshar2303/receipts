@@ -30,6 +30,7 @@ describe("command chains", () => {
   it("normalises env, npx, timeout and redirections", () => {
     expect(normaliseSegment("CI=1 FORCE_COLOR=0 npx vitest run 2>&1")).toBe("vitest run");
     expect(normaliseSegment("timeout 60 npm test > out.txt")).toBe("npm test");
+    expect(normaliseSegment("perl -e 'alarm 25; exec @ARGV' npm test")).toBe("npm test");
   });
 
   it.each([

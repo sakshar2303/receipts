@@ -31,8 +31,16 @@ export interface LabelledUnit {
   missed: number;
 }
 
+/**
+ * Who made the labels. "hand" is the author with `npm run label`; the
+ * assistant values mark a first pass made by an AI coding assistant from the
+ * same evidence, before and after the author reviewed it.
+ */
+export type Provenance = "hand" | "assistant" | "assistant-reviewed";
+
 export interface LabelFile {
   version: 1;
+  provenance?: Provenance;
   units: LabelledUnit[];
 }
 

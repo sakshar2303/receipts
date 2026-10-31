@@ -84,6 +84,7 @@ describe("pattern extractor", () => {
     expect(types("Should I update src/a.ts?")).toEqual([]);
     expect(types("I will add tests for this next.")).toEqual([]);
     expect(types("You can run `npm test` to verify all tests pass.")).toEqual([]);
+    expect(types("When it's pushed, tell me and I'll review it.")).toEqual([]);
   });
 
   it("keeps a later clause after a conditional one", () => {
@@ -97,6 +98,11 @@ describe("pattern extractor", () => {
     expect(types("Fixed and pushed as `20e81c0`.")).toEqual([["command-ran", "git push"]]);
     expect(types("Paths are resolved against the session cwd.")).toEqual([]);
     expect(types("The helper was added in src/types.")).toEqual([]);
+    expect(types("It must stay silent on the fixed version of the code.")).toEqual([]);
+  });
+
+  it("leaves the scope empty when the claim names none", () => {
+    expect(types("Still 17 pages; nothing else changed.")).toEqual([["scope", ""]]);
   });
 
   it("keeps dotted paths inside phrases and whole behaviour clauses", () => {

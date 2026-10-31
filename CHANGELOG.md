@@ -30,3 +30,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A self-contained HTML report with light and dark themes, keyboard navigation, linkable
   state, evidence panels, a step timeline and diffs; `--format html`, `--open` and
   `receipts open`.
+- An evaluation: 30 hand-written cases in both formats, `npm run eval` with per-verdict
+  precision and recall and the false-verified rate, and `npm run label` for labelling real
+  sessions locally.
+- `npm run screenshots`, which renders the README images from the demo.
+
+### Fixed
+
+- Quoted words, blockquotes, "Let me …" sentences and "When it's pushed …" sentences are no
+  longer read as claims.
+- "Nothing else changed" with no named scope is needs-review, not contradicted.
+- A test run wrapped in `perl -e 'alarm N; exec @ARGV'` is recognised.
+- `gh repo create --push` counts as a push.
+- "the fixed version" is not a bug-fix claim, and "installed hai" or "installed
+  successfully" is not a package.

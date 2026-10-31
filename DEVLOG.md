@@ -370,3 +370,83 @@ one is 5.65:1 and 5.22:1. The spec allows tuning for contrast. Verdict tags carr
 a CSS shape (filled circle, cross, half circle, ring, diamond) so colour is never the only
 signal. The footer is honest about hosted models: with a Groq or OpenRouter model it says the
 final message was sent there, not "nothing left your machine".
+
+## 2026-10-31 12:15 IST: Milestone 9, eval
+
+Built: 30 hand-written cases in `eval/fixtures/` (JSON, materialised into Claude Code JSONL
+or an OpenCode-format SQLite database plus a patch), span-overlap scoring, per-verdict
+precision and recall, the false-verified rate, flag scoring, `npm run eval` writing
+`eval/results.md`, and `npm run label`, an interactive labeller for real sessions whose
+labels stay in the gitignored `eval/private/`. Real sessions are only ever sent to a local
+Ollama model; the eval drops hosted keys.
+
+**Synthetic cases.** 100% on every metric with patterns, 93.5% extraction precision with
+gemma3, false-verified 0 of 22, flags 100% precision and recall over 17. Writing them found
+two wrong expectations in my own labels (cases 03, 04, 12 and 18 really do ignore a failing
+command) and one detector bug: failing-command-ignored counted a mention of the command's
+name as acknowledging the failure. It now needs a failure word.
+
+**Real sessions: the unit is one turn.** 15 sessions hold about 130 turns that ran a tool
+and ended with a message. Each is checked with `--turns N` on its own.
+
+**Who labelled.** The author asked the coding assistant to make the first pass. It labelled
+45 turns from 10 sessions (both agents), 191 extracted claims plus a count of missed claims
+per message, judging each claim from the tool outputs, not from Receipts' verdict, and
+opening the raw output wherever the verdict depended on it. The label file records
+`provenance: "assistant"`, and `eval/results.md` says the author has not reviewed them yet.
+A private review sheet lists every label next to Receipts' verdict.
+
+**Results on real sessions (after the fixes below):**
+
+|                      | Patterns | Patterns + gemma3 |
+| -------------------- | -------: | ----------------: |
+| Extraction precision |    97.6% |             88.6% |
+| Extraction recall    |    27.7% |             52.7% |
+| Verdict accuracy     |    90.2% |             87.2% |
+| False-verified       |  0 of 66 |    1 of 76 (1.3%) |
+
+Before the fixes, on the first-pass labels: extraction precision 87.2% and 81.7%,
+false-verified 0 of 64 and 1 of 74.
+
+**Headline finding.** The agents' checkable claims were nearly always true: only 2 of 45
+messages held a claim that was truly stale or unverified (a build that ran before the last
+code edit, and a push and new tests that a parallel worker made, not that turn). The weak
+point is extraction recall. Most of what real agents report is prose about features and
+behaviour (what a function now accepts, what a page now shows), which patterns cannot find and a
+3B local model finds about half of. Those claims would be needs-review anyway, so missing
+them costs coverage, not correctness.
+
+**Bugs labelling found, all fixed with tests:**
+
+- **Quoted words became claims.** My milestone 4 message quoted agent wording as examples
+  ("pushed to `main`", "`npm test` 263/263 passing"), and two of those were marked
+  verified. A drafted post in a blockquote did the same. Claims inside quotation marks or a
+  blockquote are now dropped for both extractors.
+- **"Let me verify the build"** was extracted by the model and marked verified. A sentence
+  that announces the next step is not a claim.
+- **"When it's pushed, tell me"** read as a push claim. It is now a conditional sentence.
+- **"the fixed version"** read as a bug fix.
+- **"Nothing else changed"** got the literal subject "scope", so any changed file
+  contradicted it. With no named scope it is now needs-review.
+- **`perl -e 'alarm 25; exec @ARGV' npm test`**, a time limit one agent used twice, hid the
+  test run, so "All 11 tests pass" and "all 21 tests still pass" were unverified although
+  the output showed them passing. The wrapper is now stripped like `timeout`.
+- **`gh repo create --push`** was not seen as a push.
+
+**My own labelling mistake, caught by the rerun.** After the `gh repo create --push` fix,
+one claim I had labelled unverified came out verified. I had filtered successful runs out
+of my reading view and wrongly concluded that turn ran no tools; the push was at step 18.
+The label is corrected and the review sheet notes it.
+
+**Still wrong, left as is:**
+
+- gemma3 typed "vitest, jest, pytest … test summaries are read" as tests-added, and test
+  files really were added, so it was marked verified. The type cue only needs the word
+  "test". A tighter cue would also drop true Hinglish claims about new tests.
+- Recall gaps worth a later pattern: a dash between a command and its result
+  ("`npm run typecheck` — passes"), "`a` and `b`" naming two files in one claim, commit
+  tables, and Hinglish ("`npm run check` green hai").
+
+**Screenshots.** `npm run screenshots` renders seven README images from the demo with the
+installed Chrome over the DevTools protocol, no new dependency. It is rerun at each
+milestone.

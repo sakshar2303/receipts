@@ -63,7 +63,8 @@ function stripHeredocs(command: string): string {
 
 /**
  * Removes noise that does not change what runs: leading env assignments,
- * `npx`, `pnpm exec`, `time`, `timeout N`, output redirections and `2>&1`.
+ * `npx`, `pnpm exec`, `time`, `timeout N`, a `perl -e 'alarm N; exec @ARGV'`
+ * time limit, output redirections and `2>&1`.
  */
 export function normaliseSegment(segment: string): string {
   let s = segment.trim();
@@ -75,7 +76,8 @@ export function normaliseSegment(segment: string): string {
         /^(?:npx|bunx|pnpm\s+exec|pnpm\s+dlx|yarn\s+dlx|time|command|exec)\s+(?:--yes\s+|-y\s+)?/,
         "",
       )
-      .replace(/^timeout\s+\S+\s+/, "");
+      .replace(/^timeout\s+\S+\s+/, "")
+      .replace(/^perl\s+-e\s+(['"])[^'"]*\bexec\s+@ARGV;?\1\s+/, "");
     if (s === before) break;
   }
   return s
