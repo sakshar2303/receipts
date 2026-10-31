@@ -1,8 +1,12 @@
 # Demo video: shot list and script
 
-A 75 to 90 second screen recording for the README, saved as `docs/demo.mp4` with a poster
-frame at `docs/assets/demo-poster.png`. Everything on screen is the bundled demo session, a
-synthetic CSV-parser task, so no real path, name or session appears.
+`docs/demo.mp4` and its poster, `docs/assets/demo-poster.png`, are rendered by
+`npm run video` (`scripts/demo-video.mjs`), which follows the shots below with headless Chrome
+and ffmpeg. It draws the cursor and shows the narration as captions, so the video works
+muted. Everything on screen is the bundled demo session, a synthetic CSV-parser task, so no
+real path, name or session appears.
+
+To record it by hand with a voice instead, use the shot list and narration below.
 
 ## Before recording
 

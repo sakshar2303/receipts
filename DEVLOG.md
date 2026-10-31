@@ -541,3 +541,31 @@ real sessions with patterns, 1 of 75 with patterns and gemma3; verdict accuracy 
 86.5% on real sessions.
 
 The demo video is not recorded yet; the README has no Demo section until it is.
+
+## 2026-10-31 17:23 IST: Milestone 12, release
+
+**History scan before going public with a release.** All 15 commits, every file ever added:
+one author and committer (Sakshar Dhawan), no co-author trailers, no credential (the only
+matches were the secret detector's own patterns), no `/Users/` path, no ignored file ever
+committed, `.env.example` empty, and no text metadata in the images.
+
+**Definition of done, checked:** the check is green locally and in CI on Node 22 and 24
+(including the committed-bundle check); `npx github:sakshar2303/receipts check demo` works
+from an empty folder with a fresh cache in 15 seconds; a real Claude Code session (528 steps,
+0.97 s) and a real OpenCode session (0.33 s) both check; the hand-written cases cover all five
+verdicts and all eleven flags; the false-verified rate is the lowest error in the table.
+
+**GitHub Pages** serves the demo report from `docs/` (`npm run sample`). Checked live in a
+browser at 1440, 1100 and 375 px in both themes: no console messages, and the page itself is
+the only request. The check found one bug: the report read its URL hash only on load, so a
+link pasted into an open tab (or back and forward) changed nothing. It now follows
+`hashchange`, including closing panels the new hash leaves out.
+
+**v1.0.0** is tagged (Sakshar Dhawan as tagger) and released with notes. Installing by tag
+(`github:sakshar2303/receipts#v1.0.0`) works.
+
+**Demo video.** Rendered rather than recorded: `scripts/demo-video.mjs` follows the shot list
+with headless Chrome, a drawn cursor and on-screen captions in place of a voice, and ffmpeg
+joins the frames into a 54-second, 0.9 MB H.264 file. Everything on screen is the demo.
+macOS system voices were not used for narration, because their licence covers personal use,
+and captions work muted anyway.

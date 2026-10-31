@@ -135,6 +135,11 @@ export async function openPage(browser) {
         throw new Error(exceptionDetails.exception?.description ?? "script failed");
       return result.value;
     },
+    /** PNG of what is in the viewport now, for video frames. */
+    async shot() {
+      const { data } = await send("Page.captureScreenshot", { format: "png" });
+      return Buffer.from(data, "base64");
+    },
     /** PNG of the page region from the top of `from` to the bottom of `to`. */
     async capture(from, to = from, { pad = 24, tight = false, maxHeight = Infinity } = {}) {
       await this.evaluate("scrollTo(0, 0)");

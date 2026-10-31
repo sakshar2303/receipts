@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A captioned demo video (`docs/demo.mp4`), rendered from the bundled demo by `npm run video`.
+
 ## [1.0.0] - 2026-10-31
 
 First release. What real sessions taught along the way, and the bugs they exposed, are in

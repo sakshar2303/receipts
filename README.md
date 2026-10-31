@@ -108,6 +108,16 @@ The report at 390 px.
 
 The Markdown output (`--format md`), ready to paste into a pull request.
 
+## Demo
+
+[![The demo video: the report open on the contradicted build claim, with its evidence](docs/assets/demo-poster.png)](https://sakshar2303.github.io/receipts/demo.mp4)
+
+A 54-second walkthrough of the bundled demo, with captions and no sound: the terminal
+summary, the evidence for a contradicted and a stale claim, a skipped-test flag, keyboard
+use, and `--fail-on`. [Watch it](https://sakshar2303.github.io/receipts/demo.mp4), or open
+[docs/demo.mp4](docs/demo.mp4). `npm run video` renders it from the demo with headless Chrome
+and ffmpeg.
+
 ## How it works
 
 ![Five stages from left to right: ingest, normalise, extract, check and flag, report](docs/assets/architecture.svg)

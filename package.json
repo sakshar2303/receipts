@@ -33,7 +33,8 @@
     "eval": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js && prettier --write eval/results.md --log-level warn",
     "label": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/label.js",
     "smoke": "node --no-warnings scripts/smoke.mjs",
-    "sample": "npm run build && node dist/receipts.js check demo --no-llm --format html --out .receipts/sample --quiet && cp .receipts/sample/report.html docs/index.html"
+    "sample": "npm run build && node dist/receipts.js check demo --no-llm --format html --out .receipts/sample --quiet && cp .receipts/sample/report.html docs/index.html",
+    "video": "npm run screenshots && node scripts/demo-video.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
