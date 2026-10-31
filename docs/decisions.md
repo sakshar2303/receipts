@@ -231,3 +231,10 @@ the project, where it would show up in the diff.
 sub-agent folder) or the database and its write-ahead log once a second. `fs.watch` was
 not used because SQLite writes go to the `-wal` file first and appends are not reported on
 every file system.
+
+## Global install uses --install-links
+
+npm 11 installs a git package without a `prepare` script as a symlink to its temporary
+clone, with no command linked. Adding `prepare` back would make every install fetch the
+development toolchain again. The documented global install is
+`npm install -g --install-links github:sakshar2303/receipts`, which copies the package.

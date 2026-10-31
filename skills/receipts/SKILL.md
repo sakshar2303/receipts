@@ -31,7 +31,7 @@ transcript can prove or disprove. Skip it for answers that make no claims about 
    - `--message -` checks your draft, because your reply is not in the transcript yet. Do
      not write the draft to a file in the project: it would show up in the diff.
    - `--no-llm` keeps everything on the machine. Leave it on.
-   - If `receipts` is installed (`npm install -g github:sakshar2303/receipts`), use
+   - If `receipts` is installed (`npm install -g --install-links github:sakshar2303/receipts`), use
      `receipts check …` instead of `npx -y github:sakshar2303/receipts check …`.
 
 3. Read `claims` in the JSON. Each has `text`, `verdict` and `reason`.

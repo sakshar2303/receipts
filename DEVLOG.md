@@ -462,10 +462,18 @@ and the package has no dependencies to fetch. The same run from a local git copy
 seconds, with nothing downloaded but the package. CI rebuilds and fails if the committed
 bundle differs from the source.
 
-Global install (`npm install -g`) from the packed tarball works: `receipts --version`,
-`check demo`, and exit 1 with `--fail-on contradicted`. (From a `git+file:` URL npm links a
-temporary clone instead of copying it, so that is not a valid local test of a GitHub
-install; the real `github:` install is tested after the push.)
+After the push, from an empty folder with a fresh cache: `npx github:sakshar2303/receipts
+check demo` takes 11 seconds and writes the report.
+
+**Global install needs `--install-links` (a change from the spec).** With npm 11,
+`npm install -g github:sakshar2303/receipts` reports success but leaves a symlink into
+npm's temporary clone folder and no `receipts` command. npm only copies a git package when
+it has a `prepare` script, and `prepare` is what made installs take five minutes.
+`npm install -g --install-links github:sakshar2303/receipts` copies it and links the
+command: `receipts --version`, `check demo`, exit 1 with `--fail-on contradicted`, and
+`receipts mcp` all work. A tarball URL
+(`https://codeload.github.com/sakshar2303/receipts/tar.gz/main`) also works. The README
+will give the `--install-links` command and say why.
 
 The bundle is 1.1 MB, 730 KB of it zod. Compressed it is 220 KB. It stays unminified.
 
