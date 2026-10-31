@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-31
+
+First release. What real sessions taught along the way, and the bugs they exposed, are in
+[DEVLOG.md](DEVLOG.md).
+
 ### Added
 
 - Project scaffold: strict TypeScript, ESLint, Prettier, Vitest, tsup and CI on Node 22 and 24.
@@ -33,29 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An evaluation: 30 hand-written cases in both formats, `npm run eval` with per-verdict
   precision and recall and the false-verified rate, and `npm run label` for labelling real
   sessions locally.
-- `npm run screenshots`, which renders the README images from the demo.
+- `npm run screenshots`, which renders the README images from the demo, and `npm run sample`,
+  which renders the sample report for GitHub Pages.
 - An agent skill, `skills/receipts/SKILL.md`, for checking a reply before sending it.
 - `receipts mcp`: an MCP server over stdio with one tool, `check_session`.
 - `check --message <file|->` to check a draft reply, `--turns last`, and `check --watch`.
 - README, `docs/verdicts.md`, `docs/flags.md`, an architecture diagram, `CONTRIBUTING.md`,
   issue templates and a shot list for the demo video.
 
-### Changed
-
-- The built CLI is committed and the package has no runtime dependencies, so
-  `npx github:sakshar2303/receipts` installs in seconds instead of minutes.
-
-### Fixed
-
-- Quoted words, blockquotes, "Let me …" sentences and "When it's pushed …" sentences are no
-  longer read as claims.
-- "Nothing else changed" with no named scope is needs-review, not contradicted.
-- A test run wrapped in `perl -e 'alarm N; exec @ARGV'` is recognised.
-- `gh repo create --push` counts as a push.
-- "Updated `a` and `b`" yields a claim for each file.
-- A function call assigned to a key-like name is no longer flagged as a secret.
-- `node --test` results in the default reporter format (`ℹ pass 11`) are read.
-- With a git diff, a shell command that changed only an ignored file (or one put back as it
-  was) no longer makes a claim stale, and `git checkout --orphan` is not counted as a write.
-- "the fixed version" is not a bug-fix claim, and "installed hai" or "installed
-  successfully" is not a package.
+[Unreleased]: https://github.com/sakshar2303/receipts/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/sakshar2303/receipts/releases/tag/v1.0.0

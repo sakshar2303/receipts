@@ -28604,7 +28604,7 @@ function patchLineStats(lines) {
 // package.json
 var package_default = {
   name: "receipts",
-  version: "0.1.0",
+  version: "1.0.0",
   description: "Check a coding agent's claims against the evidence in its transcript and diff.",
   license: "MIT",
   author: "Sakshar Dhawan <sakshardhawanfzk@gmail.com>",
@@ -28636,7 +28636,8 @@ var package_default = {
     screenshots: "npm run build && node scripts/screenshots.mjs",
     eval: "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js && prettier --write eval/results.md --log-level warn",
     label: "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/label.js",
-    smoke: "node --no-warnings scripts/smoke.mjs"
+    smoke: "node --no-warnings scripts/smoke.mjs",
+    sample: "npm run build && node dist/receipts.js check demo --no-llm --format html --out .receipts/sample --quiet && cp .receipts/sample/report.html docs/index.html"
   },
   devDependencies: {
     "@eslint/js": "^10.0.1",
