@@ -34,7 +34,8 @@ First release. What real sessions taught along the way, and the bugs they expose
 - `receipts install-hook`, `receipts explain` and `receipts doctor`.
 - A self-contained HTML report with light and dark themes, keyboard navigation, linkable
   state, evidence panels, a step timeline and diffs; `--format html`, `--open` and
-  `receipts open`.
+  `receipts open`. The URL hash keeps the selected claim, filter and open panels, and follows
+  links pasted into the same tab.
 - An evaluation: 30 hand-written cases in both formats, `npm run eval` with per-verdict
   precision and recall and the false-verified rate, and `npm run label` for labelling real
   sessions locally.

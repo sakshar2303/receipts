@@ -27859,8 +27859,11 @@ function clientApp() {
     const filter = p2.get("filter") ?? "";
     state.filter = VERDICTS2.includes(filter) ? filter : "";
     applyFilter();
-    for (const id of (p2.get("open") ?? "").split(",").map(Number).filter((n) => claimsById.has(n)))
-      setOpen(id, true);
+    const wanted = new Set(
+      (p2.get("open") ?? "").split(",").map(Number).filter((n) => claimsById.has(n))
+    );
+    for (const id of [...state.open]) if (!wanted.has(id)) setOpen(id, false);
+    for (const id of wanted) setOpen(id, true);
     const claim2 = Number(p2.get("claim"));
     if (claimsById.has(claim2)) select(claim2, { scroll: true });
     restoring = false;
@@ -28068,6 +28071,7 @@ function clientApp() {
     }
   });
   readHash();
+  window.addEventListener("hashchange", readHash);
 }
 
 // src/report/html/escape.ts

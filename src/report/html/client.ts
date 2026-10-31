@@ -248,11 +248,14 @@ export function clientApp(): void {
     const filter = p.get("filter") ?? "";
     state.filter = VERDICTS.includes(filter) ? filter : "";
     applyFilter();
-    for (const id of (p.get("open") ?? "")
-      .split(",")
-      .map(Number)
-      .filter((n) => claimsById.has(n)))
-      setOpen(id, true);
+    const wanted = new Set(
+      (p.get("open") ?? "")
+        .split(",")
+        .map(Number)
+        .filter((n) => claimsById.has(n)),
+    );
+    for (const id of [...state.open]) if (!wanted.has(id)) setOpen(id, false);
+    for (const id of wanted) setOpen(id, true);
     const claim = Number(p.get("claim"));
     if (claimsById.has(claim)) select(claim, { scroll: true });
     restoring = false;
@@ -481,4 +484,6 @@ export function clientApp(): void {
   });
 
   readHash();
+  // A link pasted into the same tab, or back and forward, changes only the hash.
+  window.addEventListener("hashchange", readHash);
 }
