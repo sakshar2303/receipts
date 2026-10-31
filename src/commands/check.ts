@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { buildContext, checkClaims } from "../check/index.js";
 import { loadConfig } from "../config-load.js";
@@ -31,6 +31,8 @@ export interface CheckOptions {
   diff?: string;
   db?: string;
   turns?: string;
+  /** Text to check in place of the transcript's final message: an agent's draft reply. */
+  message?: string;
   format: Format;
   out: string;
   llm: boolean;
@@ -65,6 +67,13 @@ export async function buildReceiptFor(
   });
   let session = resolved.session;
   if (options.turns) session = selectTurns(session, options.turns);
+  // An agent checking itself has not sent its reply yet, so it passes the draft.
+  if (options.message?.trim()) {
+    session = {
+      ...session,
+      finalMessage: { text: options.message.trim(), stepIndex: session.steps.at(-1)?.index ?? 0 },
+    };
+  }
   if (!session.finalMessage?.text.trim()) {
     throw inputNotFound(`Session "${session.title}" has no final message to check.`);
   }
@@ -98,6 +107,15 @@ export async function buildReceiptFor(
     llm: { model: extracted.model, notice: extracted.notice ?? null },
     turns: options.turns ?? null,
   });
+}
+
+/** Reads --message: a file, or standard input for "-". */
+export function readMessage(file: string): string {
+  try {
+    return readFileSync(file === "-" ? 0 : file, "utf8");
+  } catch {
+    throw inputNotFound(`Cannot read the message file "${file}".`);
+  }
 }
 
 /** Writes the requested outputs and returns the exit code for --fail-on. */

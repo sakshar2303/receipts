@@ -6,18 +6,21 @@ import { findFinalMessage } from "./build.js";
 /**
  * Narrows a session to a range of turns. A turn starts at each human message,
  * so "3..5" is the third request through the work done for the fifth. Either
- * end may be left open ("4..", "..2"). Step numbers are kept as they were so
+ * end may be left open ("4..", "..2"), and "last" is the current request. Step numbers are kept as they were so
  * the receipt still points at the right place in the transcript.
  */
 export function selectTurns(session: Session, spec: string): Session {
-  const m = /^(\d*)\.\.(\d*)$/.exec(spec.trim()) ?? /^(\d+)()$/.exec(spec.trim());
-  if (!m) throw usage(`--turns takes a range like 3..5, 4.. or ..2, not "${spec}".`);
+  const m =
+    /^(\d*)\.\.(\d*)$/.exec(spec.trim()) ??
+    /^(\d+)()$/.exec(spec.trim()) ??
+    /^(last)()$/i.exec(spec.trim());
+  if (!m) throw usage(`--turns takes a range like 3..5, 4.., ..2 or last, not "${spec}".`);
   const starts = session.steps
     .filter((s) => !s.isSidechain && s.userText.trim() !== "")
     .map((s) => s.index);
   if (starts[0] !== session.steps[0]?.index) starts.unshift(session.steps[0]?.index ?? 0);
   const total = starts.length;
-  const from = m[1] ? Number(m[1]) : 1;
+  const from = m[1]?.toLowerCase() === "last" ? total : m[1] ? Number(m[1]) : 1;
   const to = m[2] ? Number(m[2]) : m[1] && spec.includes("..") ? total : from;
   if (from < 1 || to < from || to > total) {
     throw usage(

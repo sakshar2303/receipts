@@ -32,25 +32,22 @@
     "screenshots": "npm run build && node scripts/screenshots.mjs",
     "eval": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/run.js",
     "label": "tsup --config tsup.eval.config.ts --silent && node --no-warnings .receipts/eval-build/label.js",
-    "smoke": "node --no-warnings scripts/smoke.mjs",
-    "prepare": "tsup"
-  },
-  "dependencies": {
-    "commander": "^15.0.0",
-    "picocolors": "^1.1.1",
-    "picomatch": "^4.0.7",
-    "zod": "^4.6.7"
+    "smoke": "node --no-warnings scripts/smoke.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.5",
     "@types/picomatch": "^4.0.3",
+    "commander": "^15.0.0",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
+    "picocolors": "^1.1.1",
+    "picomatch": "^4.0.7",
     "prettier": "^3.9.10",
     "tsup": "^9.0.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "zod": "^4.6.7"
   }
 }

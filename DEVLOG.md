@@ -450,3 +450,49 @@ The label is corrected and the review sheet notes it.
 **Screenshots.** `npm run screenshots` renders seven README images from the demo with the
 installed Chrome over the DevTools protocol, no new dependency. It is rerun at each
 milestone.
+
+## 2026-10-31 14:31 IST: Milestone 10, packaging
+
+**Install time was the real problem.** Measured from an empty folder with a fresh npm cache,
+`npx github:sakshar2303/receipts check demo` worked but took 305 seconds. For a git install
+npm runs `prepare`, and to do that it first installs every development dependency
+(TypeScript, ESLint, Vitest and the rest) just to build one file. The bundle already inlines
+all four runtime dependencies, so `dist/receipts.js` is now committed, `prepare` is gone,
+and the package has no dependencies to fetch. The same run from a local git copy now takes 8
+seconds, with nothing downloaded but the package. CI rebuilds and fails if the committed
+bundle differs from the source.
+
+Global install (`npm install -g`) from the packed tarball works: `receipts --version`,
+`check demo`, and exit 1 with `--fail-on contradicted`. (From a `git+file:` URL npm links a
+temporary clone instead of copying it, so that is not a valid local test of a GitHub
+install; the real `github:` install is tested after the push.)
+
+The bundle is 1.1 MB, 730 KB of it zod. Compressed it is 220 KB. It stays unminified.
+
+**Self-check needed two CLI additions.** An agent checking itself before it replies has not
+written the reply yet, so `latest` would check its previous message. `--message -` checks a
+draft from standard input, and `--turns last` limits the evidence to the current request.
+Tried on this session: it caught that I had run only `test/commands`, not the whole suite,
+before claiming "All tests pass". It also showed two bugs, both fixed:
+
+- **A secret in the bundle.** `const optionKey = option2.attributeName()` in commander
+  matched the "long value assigned to a key-like name" rule (a digit, high entropy). A value
+  followed by `(` is a call; it is now skipped. This would have fired on ordinary source
+  code too.
+- **"Updated `a` and `b`"** gave a claim for `a` only. Every further path in a list after
+  the verb is now its own claim. This was also a recall gap in the eval.
+
+**Agent skill.** `skills/receipts/SKILL.md` (standard SKILL.md frontmatter) tells an agent to
+pass its draft on stdin, read the verdicts, fix contradicted and stale claims, re-run the
+check rather than rephrase, never weaken a test, and name every high flag in its reply.
+
+**MCP server.** `receipts mcp` serves `check_session` over stdio with plain JSON-RPC, no
+SDK. It returns verdicts, reasons and flags, not transcript text. Tested in-process and
+end-to-end against the built CLI.
+
+**--watch.** Re-runs the check when the transcript, its sub-agent folder, or the database
+and its `-wal` change. It polls once a second; a transcript caught mid-write prints the
+error and waits for the next change.
+
+**Codex CLI reader: skipped.** There is no `~/.codex` on this machine, so there is nothing
+real to inspect, and the spec says not to guess formats.

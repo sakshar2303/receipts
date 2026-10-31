@@ -47,7 +47,10 @@ export function findSecrets(text: string): SecretHit[] {
   }
   for (const m of text.matchAll(ASSIGNED)) {
     const value = m[3] ?? "";
+    // `const optionKey = option2.attributeName()` is a call, not a value.
+    const isCall = text[m.index + m[0].length] === "(";
     if (
+      !isCall &&
       looksRandom(value) &&
       !hits.some((h) => h.value.includes(value) || value.includes(h.value))
     ) {

@@ -184,6 +184,7 @@ describe("file flags", () => {
   it("does not take ordinary identifiers for secrets", () => {
     expect(findSecrets("const tokenCount = computeTokenBudget(maxTokensPerRequest);")).toEqual([]);
     expect(findSecrets("password: process.env.DB_PASSWORD")).toEqual([]);
+    expect(findSecrets("const optionKey = option2.attributeName();")).toEqual([]);
   });
 
   it("redacts secrets in any text", () => {

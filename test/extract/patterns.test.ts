@@ -101,6 +101,20 @@ describe("pattern extractor", () => {
     expect(types("It must stay silent on the fixed version of the code.")).toEqual([]);
   });
 
+  it("reads each file in a list as its own claim", () => {
+    const msg = "Updated `src/a.ts`, `src/b.ts` and docs/c.md. Created src/d.ts and src/e.ts.";
+    const claims = extractPatternClaims(msg);
+    expect(claims.map((c) => [c.type, c.subject])).toEqual([
+      ["file-changed", "src/a.ts"],
+      ["file-changed", "src/b.ts"],
+      ["file-changed", "docs/c.md"],
+      ["file-created", "src/d.ts"],
+      ["file-created", "src/e.ts"],
+    ]);
+    for (const c of [claims[1], claims[2], claims[4]])
+      expect(msg.slice(c?.span.start, c?.span.end)).toBe(c?.subject);
+  });
+
   it("leaves the scope empty when the claim names none", () => {
     expect(types("Still 17 pages; nothing else changed.")).toEqual([["scope", ""]]);
   });

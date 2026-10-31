@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { runCheck } from "../../src/commands/check.js";
+import { readMessage, runCheck } from "../../src/commands/check.js";
 import { explain } from "../../src/commands/explain.js";
 import { loadConfig } from "../../src/config-load.js";
 import { DEFAULT_CONFIG } from "../../src/config.js";
@@ -96,6 +96,26 @@ describe("check", () => {
     await runCheck("demo", checkOptions({ turns: "1..1" }), io);
     expect((JSON.parse(io.text()) as { session: { turns: string } }).session.turns).toBe("1..1");
   });
+
+  it("checks a draft reply passed with --message against the same evidence", async () => {
+    const io = captureIo(tmp());
+    const message = "Updated src/parser.ts. All tests pass. The build succeeds.";
+    await runCheck("demo", checkOptions({ format: "json", message, turns: "last" }), io);
+    const receipt = JSON.parse(io.text()) as {
+      finalMessage: { text: string };
+      claims: { text: string; verdict: string }[];
+    };
+    expect(receipt.finalMessage.text).toBe(message);
+    expect(receipt.claims.map((c) => [c.text, c.verdict])).toEqual([
+      ["Updated src/parser.ts", "verified"],
+      ["All tests pass", "stale"],
+      ["The build succeeds", "contradicted"],
+    ]);
+  });
+
+  it("exits 3 when the message file cannot be read", () => {
+    expect(() => readMessage(path.join(tmp(), "missing.md"))).toThrow(/Cannot read the message/);
+  });
 });
 
 describe("turns", () => {
@@ -104,6 +124,7 @@ describe("turns", () => {
       path.join(import.meta.dirname, "../../demo/claude-code-session.jsonl"),
     );
     expect(selectTurns(session, "1").steps).toHaveLength(session.steps.length);
+    expect(selectTurns(session, "last").steps).toHaveLength(session.steps.length);
     expect(() => selectTurns(session, "2..3")).toThrow(/outside this session, which has 1 turn/);
     expect(() => selectTurns(session, "abc")).toThrow(/takes a range like/);
   });

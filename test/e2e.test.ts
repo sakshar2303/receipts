@@ -35,6 +35,29 @@ describe.runIf(existsSync(CLI))("built CLI on the demo", () => {
     ).toBe(1);
   });
 
+  it("serves check_session over MCP stdio", () => {
+    const messages = [
+      { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18" } },
+      { jsonrpc: "2.0", method: "notifications/initialized" },
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: { name: "check_session", arguments: { target: "demo", turns: "1.." } },
+      },
+    ];
+    const result = spawnSync(process.execPath, [CLI, "mcp"], {
+      input: messages.map((m) => JSON.stringify(m)).join("\n") + "\n",
+      encoding: "utf8",
+    });
+    const replies = result.stdout
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as { id: number; result: { structuredContent?: unknown } });
+    expect(replies.map((r) => r.id)).toEqual([1, 2]);
+    expect(replies[1]?.result.structuredContent).toMatchObject({ counts: { contradicted: 2 } });
+  });
+
   it("exits 2 on usage errors", () => {
     expect(run(["check", "demo", "--fail-on", "wrong"]).code).toBe(2);
     expect(run(["check", "demo", "--format", "pdf"]).code).toBe(2);

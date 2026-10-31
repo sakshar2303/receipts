@@ -1,7 +1,15 @@
 import os from "node:os";
 import { createInterface } from "node:readline/promises";
 import { Command, InvalidArgumentError, Option } from "commander";
-import { FORMATS, runCheck, type CheckOptions, type Format } from "./commands/check.js";
+import {
+  FORMATS,
+  readMessage,
+  runCheck,
+  type CheckOptions,
+  type Format,
+} from "./commands/check.js";
+import { serveMcp } from "./commands/mcp.js";
+import { watchCheck } from "./commands/watch.js";
 import { doctor } from "./commands/doctor.js";
 import { explain } from "./commands/explain.js";
 import { installHook } from "./commands/hook.js";
@@ -48,7 +56,11 @@ export function createProgram(state: CliState = { exitCode: 0 }): Command {
     .option("--head <ref>", "diff to this ref (default: the working tree)")
     .option("--diff <file>", "read changes from a patch file instead of git")
     .option("--db <path>", "read sessions from this OpenCode-format database")
-    .option("--turns <from..to>", "check only these turns, for example 3..5")
+    .option("--turns <from..to>", 'check only these turns, for example 3..5, or "last"')
+    .option(
+      "--message <file>",
+      'check this text instead of the final message ("-" reads stdin); for an agent checking its draft reply',
+    )
     .addOption(
       new Option("--format <format>", "what to write").choices([...FORMATS]).default("all"),
     )
@@ -67,20 +79,29 @@ export function createProgram(state: CliState = { exitCode: 0 }): Command {
     .option("--config <file>", "path to receipts.config.json")
     .option("--quiet", "print nothing unless there is an error", false)
     .option("--open", "open the HTML report in a browser when done", false)
+    .option("--watch", "check again whenever the session's transcript or database changes", false)
     .addHelpText(
       "after",
       `\nExamples:\n  $ receipts check demo --no-llm\n  $ receipts check latest --base main --fail-on contradicted,stale\n  $ receipts check session.jsonl --diff changes.patch --format json\n\n${EXIT_CODE_HELP}`,
     )
-    .action(async (target: string, opts: Omit<CheckOptions, "format"> & { format: Format }) => {
-      state.exitCode = await runCheck(target, opts, {
-        write: (text) => process.stdout.write(text),
-        isTTY: process.stdout.isTTY,
-        columns: process.stdout.columns || 100,
-        env: process.env,
-        cwd: process.cwd(),
-        openFile: openInBrowser,
-      });
-    });
+    .action(
+      async (
+        target: string,
+        { watch, ...opts }: Omit<CheckOptions, "format"> & { format: Format; watch: boolean },
+      ) => {
+        if (opts.message !== undefined) opts.message = readMessage(opts.message);
+        const io = {
+          write: (text: string) => process.stdout.write(text),
+          isTTY: process.stdout.isTTY,
+          columns: process.stdout.columns || 100,
+          env: process.env,
+          cwd: process.cwd(),
+          openFile: openInBrowser,
+        };
+        if (watch) await watchCheck(target, opts, io);
+        else state.exitCode = await runCheck(target, opts, io);
+      },
+    );
 
   program
     .command("open")
@@ -142,6 +163,23 @@ export function createProgram(state: CliState = { exitCode: 0 }): Command {
           colors: colorsFor(process.stdout),
         }),
       );
+    });
+
+  program
+    .command("mcp")
+    .description("Serve the check_session tool to an MCP-capable agent over stdio")
+    .addHelpText(
+      "after",
+      '\nExample, in an MCP client config:\n  { "command": "npx", "args": ["-y", "github:sakshar2303/receipts", "mcp"] }',
+    )
+    .action(async () => {
+      await serveMcp({
+        write: () => undefined,
+        isTTY: false,
+        columns: 100,
+        env: process.env,
+        cwd: process.cwd(),
+      });
     });
 
   program

@@ -11,6 +11,8 @@ export interface ResolvedTarget {
   session: Session;
   /** The demo ships its own patch, so it needs no git repository. */
   diffFile?: string;
+  /** Files whose change means the session changed, for --watch. */
+  files: string[];
 }
 
 export interface TargetOptions {
@@ -45,11 +47,12 @@ export async function resolveTarget(
     return {
       session: await readClaudeCodeSession(path.join(dir, "claude-code-session.jsonl")),
       diffFile: path.join(dir, "changes.patch"),
+      files: [path.join(dir, "claude-code-session.jsonl")],
     };
   }
   if (target.endsWith(".jsonl") || (target.includes("/") && !target.startsWith("latest"))) {
     if (!existsSync(target)) throw inputNotFound(`Transcript not found: ${target}`);
-    return { session: await readClaudeCodeSession(target) };
+    return { session: await readClaudeCodeSession(target), files: transcriptFiles(target) };
   }
 
   const latest = /^latest(?::(claude-code|opencode))?$/.exec(target);
@@ -71,7 +74,18 @@ export async function resolveTarget(
         : `No session with id "${target}". Run "receipts sessions" to list ids.`,
     );
   }
-  return { session: await readSummary(pick) };
+  return {
+    session: await readSummary(pick),
+    files:
+      pick.source === "claude-code"
+        ? transcriptFiles(pick.location)
+        : [pick.location, `${pick.location}-wal`],
+  };
+}
+
+/** A Claude Code transcript, plus the folder its sub-agent transcripts are written to. */
+function transcriptFiles(file: string): string[] {
+  return [file, path.join(file.replace(/\.jsonl$/, ""), "subagents")];
 }
 
 function pickLatest(

@@ -4,7 +4,9 @@ Short records of choices that are not obvious from the code.
 
 ## Runtime dependencies
 
-The budget is fewer than 10. Each entry says why it earns its place.
+The budget is fewer than 10. Each entry says why it earns its place. All four are bundled
+into `dist/receipts.js`, so the published package lists them as development dependencies
+and installs nothing at run time (see "Build" below).
 
 | Package    | Why                                                                            |
 | ---------- | ------------------------------------------------------------------------------ |
@@ -34,10 +36,20 @@ linter supports 7.
 
 ## Build: tsup, bundled into one file
 
-`tsup` produces a single `dist/receipts.js` with every dependency inlined, so a
-`npx github:` install has nothing extra to resolve at run time. `node:` imports stay
-external. The package builds itself through `prepare`, so installing from GitHub works
-without committing `dist/`. tsup is in maintenance mode; it is stable and sufficient here.
+`tsup` produces a single `dist/receipts.js` with every dependency inlined. `node:` imports
+stay external. tsup is in maintenance mode; it is stable and sufficient here.
+
+## The built CLI is committed
+
+The first plan built the package through a `prepare` script. Measured from an empty folder
+with a fresh npm cache, `npx github:sakshar2303/receipts check demo` then took 305 seconds:
+for a git install npm first installs every development dependency (TypeScript, ESLint,
+Vitest) just to run the build. So `dist/receipts.js` is committed, there is no `prepare`,
+and the package has no runtime dependencies to fetch. An install from GitHub downloads one
+tarball and runs. CI rebuilds and fails if the committed bundle differs from the source.
+
+The bundle is about 1.1 MB unminified (zod is 730 KB of it) and 220 KB compressed. It stays
+unminified so stack traces in a bug report point at readable code.
 
 ## Exit code 2 for usage errors
 
@@ -196,3 +208,26 @@ a Markdown blockquote (an example, a commit title, a drafted post), a sentence t
 announces the next step ("Let me verify the build") and a conditional sentence ("When it's
 pushed, tell me") are dropped for both extractors. On real data, two quoted examples had
 been marked verified.
+
+## The MCP server speaks the protocol directly
+
+`receipts mcp` serves one tool, `check_session`, over stdio. The stdio transport is
+newline-delimited JSON-RPC 2.0, and one tool needs only `initialize`, `tools/list`,
+`tools/call` and `ping`. That is about 150 lines, so the official SDK, which would be the
+largest dependency in the bundle, is not used. The tool returns verdicts, reasons and
+flags, never transcript text, and uses no model unless asked (`llm: true`).
+
+## Agents check their draft, not their sent reply
+
+An agent that checks itself before replying has not written its reply into the transcript
+yet, so `latest` would check its previous message. `check --message -` takes the draft on
+standard input (the MCP tool takes it as `message`), and `--turns last` limits the evidence
+to the work since the latest request. The skill tells agents not to write the draft into
+the project, where it would show up in the diff.
+
+## --watch polls
+
+`check --watch` re-runs when the session changes. It polls the transcript (and the
+sub-agent folder) or the database and its write-ahead log once a second. `fs.watch` was
+not used because SQLite writes go to the `-wal` file first and appends are not reported on
+every file system.

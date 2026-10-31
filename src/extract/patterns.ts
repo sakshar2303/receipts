@@ -1,5 +1,5 @@
 import type { Claim, ClaimType } from "../types.js";
-import { splitSegments } from "./segments.js";
+import { splitSegments, type Segment } from "./segments.js";
 
 export type DraftClaim = Omit<Claim, "id" | "extractedBy">;
 
@@ -172,11 +172,35 @@ export function extractPatternClaims(message: string): DraftClaim[] {
           subject: pattern.subject ?? subjectOf(pattern.type, m.groups ?? {}),
           span: { start, end },
         });
+        // Only when the path ends the match: "Updated `a`, `b`", not "`a` replaced".
+        if (m.groups?.path && m[0].trimEnd().replace(/\x60$/, "").endsWith(m.groups.path))
+          inSegment.push(...morePaths(segment, m.index + m[0].trimEnd().length, pattern.type));
       }
     }
     found.push(...inSegment);
   }
   return found.sort((a, b) => a.span.start - b.span.start);
+}
+
+// "Updated `a`, `b` and `c`": each further path is a claim of the same kind.
+const NEXT_PATH = new RegExp(String.raw`^(?:\s*,\s*(?:and\s+)?|\s+and\s+)${PATH}`, "i");
+
+function morePaths(segment: Segment, from: number, type: ClaimType): DraftClaim[] {
+  const out: DraftClaim[] = [];
+  let at = from;
+  for (;;) {
+    const m = NEXT_PATH.exec(segment.text.slice(at));
+    const path = m?.groups?.path;
+    if (!m || !path || !looksLikeFile(path)) return out;
+    const start = segment.start + at + m[0].lastIndexOf(path);
+    out.push({
+      text: path,
+      type,
+      subject: subjectOf(type, { path }),
+      span: { start, end: start + path.length },
+    });
+    at += m[0].length;
+  }
 }
 
 // Patterns match case-insensitively, so "Step.userText" would pass for a file.
