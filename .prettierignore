@@ -7,3 +7,4 @@ schema/
 test/**/__snapshots__/
 docs/index.html
 docs/report.html
+scripts/video/stage.html

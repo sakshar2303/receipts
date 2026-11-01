@@ -112,12 +112,17 @@ The Markdown output (`--format md`), ready to paste into a pull request.
 
 [![The demo video: the report open on the contradicted build claim, with its evidence](docs/assets/demo-poster.png)](https://sakshar2303.github.io/receipts/demo.mp4)
 
-A narrated walkthrough of the bundled demo, with subtitles: the terminal summary, the
-evidence for a contradicted and a stale claim, a skipped-test flag, `--fail-on`, and the
-results. [Watch it](https://sakshar2303.github.io/receipts/demo.mp4), or open
-[docs/demo.mp4](docs/demo.mp4). `npm run video` renders it from the demo: headless Chrome
-draws every frame, the macOS `say` voice reads the script, and ffmpeg synthesises the sound
-effects and music, so nothing in it is downloaded or recorded.
+A 76-second narrated film of the bundled demo: an agent's confident checklist falling apart,
+the report flying in, a spotlight on the contradicted build, the stale timeline drawn step by
+step, a test quietly turned into `it.skip`, a blocked push, and the results.
+[Watch it in 1080p60](https://sakshar2303.github.io/receipts/demo.mp4), or download the
+[4K60 master](https://github.com/sakshar2303/receipts/releases/latest) from the release.
+
+`npm run video` renders it from the demo: [scripts/video/stage.html](scripts/video/stage.html)
+draws every frame as a function of time, headless Chrome captures it at 4K and 60 fps, the
+best installed macOS voice reads the script, and
+[scripts/video/sound.mjs](scripts/video/sound.mjs) synthesises the music and every sound
+effect. Nothing in it is recorded or downloaded.
 
 ## How it works
 

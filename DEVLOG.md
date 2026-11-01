@@ -607,3 +607,31 @@ subtitles. The narration is the macOS `say` voice (`VOICE=` picks another); ever
 effect and the music bed are synthesised with ffmpeg in the script, so nothing is downloaded.
 The system voices are licensed for personal, non-commercial use; for a commercial setting,
 record a voice-over from `docs/demo-script.md` instead.
+
+## 2026-11-01 14:43 IST: The demo as a film
+
+The author found the narrated screen recording boring. It is now a 76-second film rendered
+at 4K and 60 fps. `scripts/video/stage.html` draws every frame as a pure function of time:
+ten designed scenes (an agent's checklist that glitches, a receipt that unrolls and is
+stamped, a 3D pipeline, the report flying in, a spotlight on the contradicted build, the
+stale timeline drawn step by step, `.skip` typed into a diff, a push blocked by tape, a
+split-flap results board, and an outro), kinetic word-by-word captions, stamps with screen
+shake, particles and grain. `scripts/video/sound.mjs` synthesises a 112 BPM soundtrack
+(drums, bass, pads, an arpeggio, risers) and every effect (impacts, whooshes, glitches,
+stamps, flaps, typing), with the music ducking under the voice and the mix normalised to
+-14 LUFS. Every scene and sound is timed from the narration's measured length.
+
+What went wrong on the way:
+
+- **The Mac slept.** Long renders stalled and Chrome stopped answering; the render loop now
+  restarts Chrome when a frame takes over 15 seconds and resumes from that frame, and the
+  session holds an idle-sleep assertion. A closed lid still sleeps the machine.
+- **Expensive frames in software rendering:** a 4000 px spotlight shadow, a 140 px blur on a
+  3D plane and a blended full-screen grain canvas made some frames take seconds at 4K. They
+  were replaced with four shade panels, an outline and a plain grain layer.
+- **Grain does not compress.** A fresh noise field on every frame made the 1080p file 210 MB.
+  A light temporal denoise in the encode (`hqdn3d`) brings it to 14 MB without visible loss.
+
+The narration still uses the built-in "Daniel" voice: the author chose an Apple Premium
+voice, which has to be downloaded in System Settings first. `npm run video` picks a Premium
+voice automatically once one is installed.

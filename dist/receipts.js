@@ -28609,7 +28609,7 @@ function patchLineStats(lines) {
 // package.json
 var package_default = {
   name: "receipts",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Check a coding agent's claims against the evidence in its transcript and diff.",
   license: "MIT",
   author: "Sakshar Dhawan <sakshardhawanfzk@gmail.com>",

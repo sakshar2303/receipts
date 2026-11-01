@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+:root{--paper:#fbfaf7;--ink:#161514;--night:#0b0b0a;--night2:#151513;--rule:#2b2925;--chalk:#ece8e0;--mute:#9d978b;--v:#79b886;--c:#ef6f66;--cdeep:#b3261e;--s:#e0b552;--u:#a3acb9;--n:#a99be6;
+  --serif:"Iowan Old Style","Charter",Georgia,serif;--sans:-apple-system,"SF Pro Display",system-ui,sans-serif;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--night)}
+#stage{position:absolute;inset:0;overflow:hidden;background:radial-gradient(1400px 900px at 50% 40%,#1a1916 0%,var(--night) 70%)}
+.scene{position:absolute;inset:0;opacity:0;pointer-events:none}
+.abs{position:absolute}
+.mono{font-family:var(--mono)}
+.serif{font-family:var(--serif)}
+#grain{position:absolute;inset:0;width:1920px;height:1080px;z-index:90;opacity:.045;pointer-events:none;image-rendering:pixelated}
+#vignette{position:absolute;inset:0;z-index:91;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%);pointer-events:none}
+#flash{position:absolute;inset:0;z-index:92;background:#fff;opacity:0;pointer-events:none}
+#caption{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);z-index:95;font:600 42px/1.3 var(--sans);color:var(--chalk);text-align:center;width:max-content;max-width:1560px;letter-spacing:-.01em;background:rgba(11,11,10,.8);padding:14px 30px;border-radius:12px}
+#caption:empty{display:none}
+#caption span{transition:none}
+.particles i{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--c)}
+
+/* 1. cold open */
+.chat{left:470px;top:190px;width:980px;padding:44px 52px;border:1px solid var(--rule);border-radius:14px;background:rgba(21,21,19,.9)}
+.chat .who{font:600 22px var(--mono);letter-spacing:.2em;color:var(--mute);text-transform:uppercase;margin-bottom:22px;display:flex;gap:14px;align-items:center}
+.chat .who b{width:12px;height:12px;border-radius:50%;background:var(--v);display:inline-block}
+.chat .line{font:400 40px/1.4 var(--sans);color:var(--chalk);min-height:58px}
+.check{display:flex;align-items:center;gap:22px;font:500 38px/1.2 var(--sans);color:var(--chalk);margin-top:26px;transform-origin:left center}
+.check i{width:46px;height:46px;border-radius:50%;background:var(--v);display:grid;place-items:center;font:700 28px var(--sans);color:#0b0b0a;font-style:normal;flex:none}
+.big-q{left:0;right:0;top:820px;text-align:center;font:600 92px/1 var(--serif);color:var(--chalk)}
+
+/* 2. title */
+.slot{left:560px;top:96px;width:800px;height:34px;background:#050505;border:1px solid #2a2824;border-radius:8px;box-shadow:inset 0 -8px 14px #000,0 18px 40px rgba(0,0,0,.6);z-index:3}
+.paperwrap{left:590px;top:116px;width:740px;height:860px;overflow:hidden;z-index:2}
+.paper{width:740px;height:860px;background:var(--paper);color:var(--ink);padding:70px 70px;font:24px/1.8 var(--mono);position:relative}
+.paper::after{content:"";position:absolute;left:0;right:0;bottom:-14px;height:14px;background:var(--paper);-webkit-mask:linear-gradient(135deg,#000 7px,transparent 0) 0 0/14px 14px repeat-x,linear-gradient(225deg,#000 7px,transparent 0) 0 0/14px 14px repeat-x}
+.paper h1{font:600 150px/1 var(--serif);margin:10px 0 18px;letter-spacing:-.02em;text-align:center}
+.paper .rule{border-top:2px dashed #b9b2a5;margin:26px 0}
+.paper .row{display:flex;gap:10px}.paper .row .d{flex:1;border-bottom:2px dotted #a49c8e;transform:translateY(-9px)}
+.paper .bar{height:70px;margin-top:30px;background:repeating-linear-gradient(90deg,var(--ink) 0 3px,transparent 3px 7px,var(--ink) 7px 9px,transparent 9px 13px,var(--ink) 13px 18px,transparent 18px 20px)}
+.stamp{z-index:6;font:800 84px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:18px 34px;border:10px solid currentColor;border-radius:10px;white-space:nowrap;background:rgba(251,250,247,.86);transform-origin:center}
+.beam{left:460px;top:-200px;width:1000px;height:1400px;background:radial-gradient(closest-side,rgba(255,236,200,.16),transparent);z-index:1}
+
+/* 3. pipeline */
+.pipe{perspective:1600px}
+.card{width:470px;height:330px;border-radius:14px;border:1px solid #33312c;background:#141412;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.card h4{margin:0;padding:18px 24px;font:600 22px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid #2b2925}
+.card .body{padding:18px 24px;font:21px/1.65 var(--mono);color:var(--chalk);white-space:pre}
+.add{color:var(--v)}.del{color:var(--c)}.dim{color:var(--mute)}
+.node{width:190px;height:190px;border-radius:50%;background:var(--paper);display:grid;place-items:center;box-shadow:0 0 0 14px rgba(251,250,247,.08),0 0 120px rgba(251,250,247,.25)}
+.node svg{width:84px;height:100px}
+.vst{font:800 30px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:12px 18px;border:5px solid currentColor;border-radius:8px;white-space:nowrap;background:rgba(11,11,10,.85)}
+
+/* 4-5. report */
+.rwrap{perspective:2200px}
+.plane{position:absolute;left:0;top:0;transform-origin:0 0;border-radius:10px;overflow:hidden;outline:1px solid rgba(255,255,255,.06)}
+.plane img{display:block;width:1440px}
+.sweep{position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.35) 50%,transparent 65%);mix-blend-mode:soft-light}
+.spot{position:absolute;border-radius:12px;border:3px solid var(--c)}
+.shade{position:absolute;background:rgba(5,5,4,.72)}
+.callout{font:700 40px var(--mono);color:var(--c);background:rgba(11,11,10,.92);padding:14px 22px;border:2px solid var(--c);border-radius:8px}
+.kin{font:700 96px/1 var(--serif);color:var(--chalk);text-align:center;left:50%;width:max-content;background:rgba(11,11,10,.9);padding:26px 48px;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+
+/* 6. stale */
+.stl text{font-family:var(--mono)}
+
+/* 7. flags */
+.diff{left:180px;top:200px;width:1560px;border-radius:14px;overflow:hidden;border:1px solid #33312c;background:#121210;font:40px/1.9 var(--mono);color:var(--chalk)}
+.diff .fn{padding:18px 30px;font-size:26px;color:var(--mute);border-bottom:1px solid #2b2925;display:flex;justify-content:space-between}
+.diff .ln{padding:0 30px;white-space:pre}
+.diff .ln.del{background:rgba(239,111,102,.13);color:#f3b2ac}
+.diff .ln.add{background:rgba(121,184,134,.12);color:#bfe2c6}
+.diff .ln b{background:var(--cdeep);color:#fff;border-radius:6px;padding:0 4px;font-weight:700}
+.chips{left:180px;top:640px;width:1560px;display:flex;flex-wrap:wrap;gap:16px}
+.chip{font:600 26px var(--mono);color:var(--chalk);border:1px solid #3a3833;background:#151513;border-radius:8px;padding:12px 18px;display:flex;gap:12px;align-items:center}
+.chip em{font-style:normal;font-size:18px;letter-spacing:.12em;padding:4px 8px;border-radius:4px;color:#0b0b0a;font-weight:800}
+
+/* 8. gate */
+.term{left:200px;top:150px;width:1520px;border-radius:14px;border:1px solid #33312c;background:#0f0f0e;overflow:hidden}
+.term .tb{height:52px;border-bottom:1px solid #2b2925;display:flex;gap:12px;align-items:center;padding:0 22px}
+.term .tb i{width:16px;height:16px;border-radius:50%;background:#3a3834}
+.term pre{margin:0;padding:34px 40px;font:36px/1.6 var(--mono);color:var(--chalk);min-height:560px;white-space:pre}
+.tape{left:-200px;width:2320px;height:150px;background:repeating-linear-gradient(-45deg,#e8c547 0 60px,#161514 60px 120px);box-shadow:0 20px 60px rgba(0,0,0,.6);display:grid;place-items:center}
+.tape span{font:900 86px/1 var(--sans);letter-spacing:.14em;color:#fff;background:var(--cdeep);padding:14px 40px;border-radius:8px}
+
+/* 9. numbers */
+.board{left:160px;top:330px;width:1600px;display:grid;grid-template-columns:repeat(4,1fr);gap:40px}
+.tile{display:flex;gap:10px;height:260px}
+.flap{flex:1;max-width:180px;background:linear-gradient(#1d1c1a 49.6%,#0b0b0a 49.6%,#0b0b0a 50.4%,#1a1917 50.4%);border-radius:12px;display:grid;place-items:center;font:700 190px/1 var(--mono);color:var(--chalk);box-shadow:inset 0 0 0 1px #33312c,0 18px 40px rgba(0,0,0,.5);overflow:hidden}
+.board p{margin:22px 0 0;font:500 28px/1.35 var(--sans);color:var(--mute)}
+.board .green{color:var(--v)}
+
+/* 10. outro */
+.out-title{left:140px;top:200px;font:600 104px/1.04 var(--serif);color:var(--chalk);width:1080px}
+.out-title em{font-style:normal;color:var(--c)}
+.cmd{left:140px;top:610px;font:500 32px var(--mono);color:var(--chalk);background:#151513;border:1px solid #33312c;border-radius:10px;padding:22px 30px}
+.url{left:140px;top:725px;font:500 32px var(--mono);color:var(--mute)}
+.mini{left:1350px;top:150px;width:470px}
+.mini .paper{width:470px;height:auto;padding:40px 38px 36px;font-size:19px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- 1. cold open -->
+  <section class="scene" id="s-cold">
+    <div class="abs chat" id="chat">
+      <div class="who"><b></b>coding agent</div>
+      <div class="line" id="typed"></div>
+      <div id="checks"></div>
+    </div>
+    <div class="abs big-q" id="bigq">But did it actually check?</div>
+  </section>
+
+  <!-- 2. title -->
+  <section class="scene" id="s-title">
+    <div class="abs beam" id="beam"></div>
+    <div class="abs slot"></div>
+    <div class="abs paperwrap"><div class="paper" id="paper">
+      <div style="text-align:center;letter-spacing:.3em;color:#6b665d">· · · RECEIPT · · ·</div>
+      <h1>Receipts</h1>
+      <div style="text-align:center;color:#6b665d">claims checked against the evidence</div>
+      <div class="rule"></div>
+      <div class="row"><span>exit codes</span><span class="d"></span><span>✓</span></div>
+      <div class="row"><span>command output</span><span class="d"></span><span>✓</span></div>
+      <div class="row"><span>the git diff</span><span class="d"></span><span>✓</span></div>
+      <div class="row"><span>the agent's word</span><span class="d"></span><span style="color:#b3261e">✕</span></div>
+      <div class="bar"></div>
+    </div></div>
+    <div class="abs stamp" id="tstamp" style="left:960px;top:700px;color:var(--cdeep)">Check the receipts</div>
+    <div class="abs particles" id="dust"></div>
+  </section>
+
+  <!-- 3. pipeline -->
+  <section class="scene pipe" id="s-pipe">
+    <div class="abs card" id="c1"><h4>session transcript</h4><div class="body" id="c1b"></div></div>
+    <div class="abs card" id="c2"><h4>git diff</h4><div class="body"><span class="dim">src/parser.ts</span>
+<span class="add">+  if (!input) return [];</span>
+<span class="add">+  const cells = splitQuoted(line);</span>
+<span class="del">-  const cells = line.split(",");</span>
+<span class="dim">test/parser.test.ts</span>
+<span class="del">-  it("handles CRLF", () =&gt; {</span>
+<span class="add">+  it.skip("handles CRLF", () =&gt; {</span></div></div>
+    <div class="abs card" id="c3"><h4>final message</h4><div class="body" style="white-space:normal;font-family:var(--sans);font-size:24px">Done. Fixed the parser crash and updated src/parser.ts. Installed zod. Typecheck passes and the build succeeds. <u style="text-decoration-color:var(--s)">All tests pass.</u></div></div>
+    <div class="abs node" id="node"><svg viewBox="0 0 42 50"><path d="M3 2h36v42l-6-4-6 4-6-4-6 4-6-4-6 4z" fill="#161514"/><path d="M10 13h22M10 21h22M10 29h14" stroke="#fbfaf7" stroke-width="3"/></svg></div>
+    <div id="vstamps"></div>
+  </section>
+
+  <!-- 4-5. report -->
+  <section class="scene rwrap" id="s-report">
+    <div class="plane" id="planeA"><img id="imgA" alt=""><div class="sweep" id="sweep"></div></div>
+    <div class="plane" id="planeB" style="opacity:0"><img id="imgB" alt=""></div>
+    <div class="shade" id="sh1"></div><div class="shade" id="sh2"></div><div class="shade" id="sh3"></div><div class="shade" id="sh4"></div><div class="abs spot" id="spot" style="opacity:0"></div>
+    <div class="abs callout" id="callout" style="opacity:0">exit code 2</div>
+    <div class="abs kin" id="kin" style="top:430px;opacity:0"></div>
+    <div class="abs stamp" id="rstamp" style="opacity:0"></div>
+  </section>
+
+  <!-- 6. stale -->
+  <section class="scene" id="s-stale">
+    <div class="abs serif" id="stitle" style="left:160px;top:120px;font-size:84px;color:var(--chalk);font-weight:600">Green at step 8.</div>
+    <svg class="abs stl" id="stl" style="left:0;top:0" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+    <div class="abs stamp" id="sstamp" style="opacity:0;color:var(--s)">Stale</div>
+  </section>
+
+  <!-- 7. flags -->
+  <section class="scene" id="s-flags">
+    <div class="abs diff">
+      <div class="fn"><span>test/parser.test.ts</span><span id="flagname" style="color:var(--c);font-weight:700;opacity:0">TEST-SKIPPED · HIGH</span></div>
+      <div class="ln"><span class="dim">19   </span>  });</div>
+      <div class="ln del"><span class="dim">20 - </span>  it("handles CRLF line endings", () =&gt; {</div>
+      <div class="ln add" id="addline"><span class="dim">20 + </span>  it<b id="skip"></b>("handles CRLF line endings", () =&gt; {</div>
+      <div class="ln"><span class="dim">21   </span>    expect(parse("a,b\r\n")).toEqual([["a","b"]]);</div>
+    </div>
+    <svg class="abs" id="flagsvg" style="left:1748px;top:150px" width="160" height="200" viewBox="0 0 160 200"><path d="M20 10v190" stroke="#ece8e0" stroke-width="8"/><path id="flagcloth" fill="#ef6f66"/></svg>
+    <div class="abs chips" id="chips"></div>
+  </section>
+
+  <!-- 8. gate -->
+  <section class="scene" id="s-gate">
+    <div class="abs term"><div class="tb"><i></i><i></i><i></i></div><pre id="gpre"></pre></div>
+    <div class="abs tape" id="tape1"><span>PUSH BLOCKED</span></div>
+  </section>
+
+  <!-- 9. numbers -->
+  <section class="scene" id="s-nums">
+    <div class="abs serif" id="ntitle" style="left:160px;top:130px;font-size:96px;color:var(--chalk);font-weight:600">When it says verified, it is.</div>
+    <div class="abs board" id="board"></div>
+  </section>
+
+  <!-- 10. outro -->
+  <section class="scene" id="s-outro">
+    <div class="abs out-title" id="otitle">Your agent says<br>it's done.<br><em>Check the receipts.</em></div>
+    <div class="abs cmd" id="ocmd"><span style="color:var(--mute)">$ </span>npx github:sakshar2303/receipts check demo --open</div>
+    <div class="abs url" id="ourl">github.com/sakshar2303/receipts · free · local · open source</div>
+    <div class="abs mini paperwrap" id="ominiwrap" style="height:0"><div class="paper" id="omini">
+      <div style="text-align:center;font-weight:700;letter-spacing:.2em">RECEIPTS 1.0</div>
+      <div class="rule"></div>
+      <div class="row"><span>API keys needed</span><span class="d"></span><span>0</span></div>
+      <div class="row"><span>paid model calls</span><span class="d"></span><span>0</span></div>
+      <div class="row"><span>code sent anywhere</span><span class="d"></span><span>0</span></div>
+      <div class="row"><span>verdicts by a model</span><span class="d"></span><span>0</span></div>
+      <div class="rule"></div>
+      <div class="row" style="font-weight:700"><span>TIME TO TRY</span><span class="d"></span><span>60 S</span></div>
+      <div class="bar"></div>
+    </div></div>
+    <div class="abs stamp" id="ostamp" style="opacity:0;color:var(--cdeep)">Verified</div>
+  </section>
+
+  <canvas id="grain" width="960" height="540"></canvas>
+  <div id="vignette"></div>
+  <div id="flash"></div>
+  <div id="caption"></div>
+</div>
+<script>
+// Everything on screen is a pure function of time: render(t) draws frame t.
+const TL = window.TL, A = window.ASSETS;
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const back = (x) => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, x) => a + (b - a) * x;
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+const scene = (id) => TL.scenes.find((s) => s.id === id);
+const mark = (id, name) => scene(id).start + scene(id).marks[name];
+
+// Stamp: drops from 2.6x to 1x in 0.24 s from `at`, then stays.
+function stampAt(el, t, at, rot = -8, x = 960, y = 540) {
+  const p = prog(t, at, at + 0.24);
+  if (t < at) { el.style.opacity = 0; return; }
+  el.style.opacity = Math.min(1, p * 2.5);
+  el.style.left = x + "px"; el.style.top = y + "px";
+  el.style.transform = `translate(-50%,-50%) rotate(${rot}deg) scale(${lerp(2.6, 1, easeOut(p))})`;
+}
+function shakeAt(t, at, amp = 16) {
+  const p = prog(t, at + 0.2, at + 0.55);
+  if (t < at + 0.2 || p >= 1) return [0, 0];
+  const k = (1 - p) * amp;
+  return [Math.sin(t * 90) * k, Math.cos(t * 77) * k];
+}
+
+// Grain: a fresh noise field every frame, from a seed, so renders repeat exactly.
+const g = $("grain").getContext("2d"), gimg = g.createImageData(960, 540);
+function grain(frame) {
+  const r = rng(frame * 7919 + 13);
+  for (let i = 0; i < gimg.data.length; i += 4) { const v = r() * 255; gimg.data[i] = gimg.data[i + 1] = gimg.data[i + 2] = v; gimg.data[i + 3] = 255; }
+  g.putImageData(gimg, 0, 0);
+}
+
+// Captions: the current line, each word lighting up as it is spoken.
+function caption(t) {
+  const line = TL.lines.find((l) => t >= l.start - 0.1 && t <= l.end + 0.5);
+  const el = $("caption");
+  if (!line) { el.innerHTML = ""; return; }
+  const words = line.text.split(" ");
+  const total = line.text.length;
+  let acc = 0;
+  const fadeOut = 1 - prog(t, line.end + 0.2, line.end + 0.5);
+  el.style.opacity = Math.min(prog(t, line.start - 0.1, line.start + 0.15), fadeOut);
+  el.innerHTML = words.map((w) => {
+    const at = line.start + (acc / total) * (line.end - line.start);
+    acc += w.length + 1;
+    const on = t >= at;
+    return `<span style="color:${on ? "#ece8e0" : "rgba(236,232,224,.32)"}">${w}</span>`;
+  }).join(" ");
+}
+
+function visible(id, t) {
+  const s = scene(id), el = $(id);
+  const a = prog(t, s.start - 0.01, s.start + (s.fadeIn ?? 0.35));
+  const b = 1 - prog(t, s.end - (s.fadeOut ?? 0.35), s.end);
+  const o = Math.min(a, b);
+  el.style.opacity = o;
+  el.style.display = o <= 0 ? "none" : "block";
+  return o > 0 ? t - s.start : null;
+}
+
+// ------------------------------------------------------------- scenes
+
+const CHECKS = ["All tests pass", "The build succeeds", "Updated src/format.ts", "Ready to merge"];
+$("checks").innerHTML = CHECKS.map((c, i) => `<div class="check" id="ck${i}"><i>✓</i><span>${c}</span></div>`).join("");
+function drawCold(t, l) {
+  const s = scene("s-cold");
+  const typed = "Done. Here's what I did:";
+  $("typed").textContent = typed.slice(0, Math.floor(clamp((l - 0.3) * 32, 0, typed.length)));
+  const glitchAt = s.marks.glitch;
+  CHECKS.forEach((_, i) => {
+    const el = $(`ck${i}`), p = prog(l, s.marks.checks + i * 0.42, s.marks.checks + i * 0.42 + 0.35);
+    el.style.opacity = p > 0 ? 1 : 0;
+    el.style.transform = `scale(${lerp(0.6, 1, back(p))})`;
+    const icon = el.querySelector("i");
+    const broken = l > glitchAt + 0.15 + i * 0.12;
+    icon.textContent = broken ? "?" : "✓";
+    icon.style.background = broken ? "#ef6f66" : "#79b886";
+  });
+  const gl = prog(l, glitchAt, glitchAt + 0.9);
+  const chat = $("chat");
+  if (gl > 0 && gl < 1) {
+    const r = rng(Math.floor(l * 60));
+    chat.style.transform = `translate(${(r() - 0.5) * 30}px,${(r() - 0.5) * 12}px) skewX(${(r() - 0.5) * 6}deg)`;
+    chat.style.filter = `drop-shadow(${(r() - 0.5) * 18}px 0 0 rgba(255,0,60,.7)) drop-shadow(${(r() - 0.5) * -18}px 0 0 rgba(0,220,255,.6))`;
+  } else { chat.style.transform = ""; chat.style.filter = ""; }
+  const q = prog(l, s.marks.question, s.marks.question + 0.5);
+  $("bigq").style.opacity = q;
+  $("bigq").style.transform = `translateY(${(1 - easeOut(q)) * 40}px)`;
+  $("bigq").style.letterSpacing = `${lerp(0.08, 0, easeOut(q))}em`;
+}
+
+function drawTitle(t, l) {
+  const s = scene("s-title");
+  const p = easeOut(prog(l, 0.2, s.marks.stamp - 0.4));
+  $("paper").style.transform = `translateY(${lerp(-860, 0, p)}px)`;
+  $("beam").style.opacity = 0.4 + 0.6 * p;
+  stampAt($("tstamp"), l, s.marks.stamp, -7, 960, 760);
+  const d = $("dust");
+  const bp = prog(l, s.marks.stamp + 0.2, s.marks.stamp + 1.4);
+  if (!d.childElementCount) d.innerHTML = Array.from({ length: 36 }, () => "<i></i>").join("");
+  const r = rng(7);
+  [...d.children].forEach((el) => {
+    const ang = r() * Math.PI * 2, sp = 200 + r() * 520, sz = 4 + r() * 10;
+    el.style.left = 960 + Math.cos(ang) * sp * easeOut(bp) + "px";
+    el.style.top = 760 + Math.sin(ang) * sp * easeOut(bp) + 260 * bp * bp + "px";
+    el.style.width = el.style.height = sz + "px";
+    el.style.opacity = bp > 0 && bp < 1 ? 1 - bp : 0;
+    el.style.background = r() > 0.5 ? "#b3261e" : "#ece8e0";
+  });
+  const z = 1 + 0.04 * prog(l, 0, s.end - s.start);
+  $("s-title").style.transform = `scale(${z})`;
+}
+
+const TRANSCRIPT = ["$ npm test 2>&1 | tail -20", "  Tests  8 passed (8)", "Edit test/parser.test.ts", "Edit test/parser.test.ts", "$ npm install zod", "$ npm run build", "  error TS2322", "  exit 2", "$ tsc --noEmit", "Edit src/parser.ts", "$ git status --short"];
+const VSTAMPS = [["Verified", "#79b886"], ["Contradicted", "#ef6f66"], ["Stale", "#e0b552"], ["Unverified", "#a3acb9"], ["Needs review", "#a99be6"]];
+$("vstamps").innerHTML = VSTAMPS.map(([n, c], i) => `<div class="abs vst" id="vs${i}" style="color:${c}">${n}</div>`).join("");
+function drawPipe(t, l) {
+  const s = scene("s-pipe");
+  const lines = Math.floor(Math.max(0, l) * 3.2);
+  $("c1b").innerHTML = Array.from({ length: 7 }, (_, i) => TRANSCRIPT[(((lines + i) % TRANSCRIPT.length) + TRANSCRIPT.length) % TRANSCRIPT.length])
+    .map((x) => x.startsWith("$") ? `<span class="dim">${x}</span>` : x.includes("exit 2") || x.includes("error") ? `<span class="del">${x}</span>` : x).join("\n");
+  const conv = easeInOut(prog(l, s.marks.converge, s.marks.converge + 0.9));
+  const homes = [[150, 230, 22], [725, 150, 0], [1300, 230, -22]];
+  ["c1", "c2", "c3"].forEach((id, i) => {
+    const pin = easeOut(prog(l, 0.15 + i * 0.25, 1.15 + i * 0.25));
+    const [x, y, ry] = homes[i];
+    const el = $(id);
+    const z = lerp(-1600, 0, pin) + conv * -300;
+    const cx = lerp(x, 960 - 235, conv), cy = lerp(y, 540 - 165, conv);
+    el.style.left = cx + "px"; el.style.top = cy + "px";
+    el.style.transform = `translateZ(${z}px) rotateY(${lerp(ry * 2, ry, pin) * (1 - conv)}deg) scale(${lerp(1, 0.25, conv)})`;
+    el.style.opacity = Math.min(pin * 1.4, 1 - prog(l, s.marks.converge + 0.6, s.marks.converge + 0.9));
+  });
+  const n = $("node"), np = prog(l, s.marks.converge + 0.7, s.marks.converge + 1.1);
+  n.style.left = 960 - 95 + "px"; n.style.top = 540 - 95 - 40 + "px";
+  n.style.opacity = np; n.style.transform = `scale(${lerp(0.3, 1, back(np))})`;
+  VSTAMPS.forEach((_, i) => {
+    const el = $(`vs${i}`), at = s.marks.fan + i * 0.28, p = prog(l, at, at + 0.3);
+    const ang = Math.PI * (0.92 + i * 0.29), R = 430;
+    el.style.left = 960 + Math.cos(ang) * R * easeOut(p) + "px";
+    el.style.top = 500 + Math.sin(ang) * R * 0.62 * easeOut(p) + 40 + "px";
+    el.style.opacity = p > 0 ? 1 : 0;
+    el.style.transform = `translate(-50%,-50%) rotate(${(i - 2) * 5}deg) scale(${lerp(2.2, 1, easeOut(p))})`;
+  });
+}
+
+// The report as a plane in 3D: it flies in, lies flat, then the camera moves over it.
+function planeXf(cam) { return `translate(${960 - cam.x * cam.s}px,${540 - cam.y * cam.s}px) scale(${cam.s})`; }
+function drawReport(t, l) {
+  const s = scene("s-report"), m = s.marks;
+  $("imgA").src = A.a.src; $("imgB").src = A.b.src;
+  const fly = easeOut(prog(l, 0, 1.6));
+  const W = 1440, Ha = A.a.h;
+  // Camera keyframes in texture coordinates: centre x, centre y, scale.
+  const overview = { x: W / 2, y: 520, s: 1.12 };
+  const counts = { x: W / 2, y: A.a.counts.y + A.a.counts.h / 2 + 40, s: 1.75 };
+  const ev = A.b.ev;
+  const evCam = { x: ev.x + ev.w / 2, y: ev.y + ev.h / 2, s: Math.min(1.9, 1500 / ev.w) };
+  let cam = overview;
+  if (l > m.counts) cam = mix(overview, counts, easeInOut(prog(l, m.counts, m.counts + 1.2)));
+  if (l > m.dive) cam = mix(counts, evCam, easeInOut(prog(l, m.dive, m.dive + 1.3)));
+  const tilt = `perspective(2200px) rotateX(${lerp(58, 0, fly)}deg) rotateZ(${lerp(-10, 0, fly)}deg) translateZ(${lerp(-900, 0, fly)}px)`;
+  for (const id of ["planeA", "planeB"]) $(id).style.transform = `${tilt} ${planeXf(cam)}`;
+  $("planeA").style.transformOrigin = "0 0";
+  $("sweep").style.transform = `translateX(${lerp(-1600, 1600, prog(l, 0.9, 2.1))}px)`;
+  const swap = prog(l, m.open, m.open + 0.35);
+  $("planeB").style.opacity = swap; $("planeA").style.opacity = 1 - swap * 0.999;
+  const k = prog(l, m.counts + 0.6, m.counts + 1.0) * (1 - prog(l, m.dive - 0.4, m.dive));
+  $("kin").style.opacity = k; $("kin").textContent = "2 of 9 claims proven";
+  $("kin").style.top = "120px"; $("kin").style.transform = `translateX(-50%) scale(${lerp(1.3, 1, easeOut(k))})`;
+  // Spotlight on the evidence, in screen coordinates.
+  const sp = prog(l, m.dive + 1.1, m.dive + 1.5);
+  const toS = (x, y) => [960 + (x - cam.x) * cam.s, 540 + (y - cam.y) * cam.s];
+  const [sx, sy] = toS(ev.x - 12, ev.y - 12);
+  const sw = (ev.w + 24) * cam.s, sh = (ev.h + 24) * cam.s;
+  Object.assign($("spot").style, { opacity: sp, left: sx + "px", top: sy + "px", width: sw + "px", height: sh + "px" });
+  const shade = [[0, 0, 1920, sy], [0, sy + sh, 1920, 1080 - sy - sh], [0, sy, sx, sh], [sx + sw, sy, 1920 - sx - sw, sh]];
+  shade.forEach(([x, y, w, h], i) => Object.assign($(`sh${i + 1}`).style, { opacity: sp, left: x + "px", top: y + "px", width: Math.max(0, w) + "px", height: Math.max(0, h) + "px" }));
+  const co = prog(l, m.dive + 1.5, m.dive + 1.8);
+  Object.assign($("callout").style, { opacity: co, left: sx + (ev.w + 24) * cam.s - 380 + "px", top: sy - 90 + "px", transform: `translateY(${(1 - easeOut(co)) * 20}px)` });
+  const st = $("rstamp"); st.textContent = "Contradicted"; st.style.color = "#b3261e";
+  stampAt(st, l, m.stamp, -8, 960, 600);
+}
+function mix(a, b, x) { return { x: lerp(a.x, b.x, x), y: lerp(a.y, b.y, x), s: lerp(a.s, b.s, x) }; }
+
+function drawStale(t, l) {
+  const s = scene("s-stale"), m = s.marks, svg = $("stl");
+  const X = (i) => 200 + (i - 1) * (1520 / 14), Y = 560;
+  const lineP = easeInOut(prog(l, 0.2, 1.4));
+  let h = `<line x1="200" y1="${Y}" x2="${200 + 1520 * lineP}" y2="${Y}" stroke="#ece8e0" stroke-width="4"/>`;
+  for (let i = 1; i <= 15; i++) {
+    const p = prog(l, 0.3 + i * 0.06, 0.6 + i * 0.06);
+    h += `<line x1="${X(i)}" x2="${X(i)}" y1="${Y - 16 * p}" y2="${Y + 16 * p}" stroke="#5a564e" stroke-width="4"/>`;
+    h += `<text x="${X(i)}" y="${Y + 70}" text-anchor="middle" font-size="26" fill="#9d978b" opacity="${p}">${i}</text>`;
+  }
+  const pass = prog(l, m.pass, m.pass + 0.4), decay = prog(l, m.decay, m.decay + 0.8);
+  const col = decay > 0 ? `rgb(${lerp(121, 224, decay)},${lerp(184, 181, decay)},${lerp(134, 82, decay)})` : "#79b886";
+  if (pass > 0) {
+    const pulse = (l - m.pass) % 1.2;
+    h += `<circle cx="${X(8)}" cy="${Y}" r="${30 + pulse * 70}" fill="none" stroke="${col}" stroke-width="4" opacity="${(1 - pulse / 1.2) * 0.8 * (1 - decay)}"/>`;
+    h += `<circle cx="${X(8)}" cy="${Y}" r="${28 * back(pass)}" fill="${col}"/>`;
+    h += `<text x="${X(8)}" y="${Y + 12}" text-anchor="middle" font-size="34" font-weight="700" fill="#0b0b0a">${decay > 0.5 ? "!" : "✓"}</text>`;
+    h += `<text x="${X(8)}" y="${Y - 70}" text-anchor="middle" font-size="34" fill="${col}" opacity="${pass}">${decay > 0.5 ? "passed, then edited" : "tests pass"}</text>`;
+  }
+  [10, 11, 12].forEach((step, i) => {
+    const p = prog(l, m.edits + i * 0.35, m.edits + i * 0.35 + 0.4);
+    if (p <= 0) return;
+    const y = lerp(Y - 420, Y - 30, easeOut(p)) + (p < 1 ? 0 : 0);
+    h += `<rect x="${X(step) - 30}" y="${y}" width="60" height="60" rx="6" fill="#e0b552"/>`;
+    h += `<text x="${X(step)}" y="${y + 40}" text-anchor="middle" font-size="26" font-weight="700" fill="#0b0b0a">✎</text>`;
+  });
+  const lab = prog(l, m.edits + 1.2, m.edits + 1.6);
+  h += `<text x="${X(11)}" y="${Y - 120}" text-anchor="middle" font-size="32" fill="#e0b552" opacity="${lab}">test file edited</text>`;
+  const br = prog(l, m.decay + 0.4, m.decay + 1.2);
+  if (br > 0) {
+    const x2 = lerp(X(8), X(15), easeOut(br));
+    h += `<path d="M${X(8)} ${Y + 120} v20 H${x2} v-20" fill="none" stroke="#e0b552" stroke-width="4"/>`;
+    h += `<text x="${(X(8) + X(15)) / 2}" y="${Y + 190}" text-anchor="middle" font-size="32" fill="#e0b552" opacity="${br}">no test run after the edits</text>`;
+  }
+  svg.innerHTML = h;
+  $("stitle").textContent = l > m.edits + 0.4 ? "Edited at step 10." : "Green at step 8.";
+  $("stitle").style.color = l > m.edits + 0.4 ? "#e0b552" : "#ece8e0";
+  stampAt($("sstamp"), l, m.stamp, -8, 1460, 330);
+}
+
+const FLAGS = [["test-skipped", "#ef6f66", "HIGH"], ["test-file-modified", "#ef6f66", "HIGH"], ["secret-in-diff", "#ef6f66", "HIGH"], ["dangerous-command", "#ef6f66", "HIGH"], ["sensitive-file", "#ef6f66", "HIGH"], ["assertion-weakened", "#e0b552", "MED"], ["coverage-threshold-lowered", "#e0b552", "MED"], ["failing-command-ignored", "#e0b552", "MED"], ["unmentioned-change", "#e0b552", "MED"], ["lockfile-churn", "#a3acb9", "LOW"], ["large-diff", "#a3acb9", "LOW"]];
+$("chips").innerHTML = FLAGS.map(([n, c, s], i) => `<div class="chip" id="fc${i}"><em style="background:${c}">${s}</em>${n}</div>`).join("");
+function drawFlags(t, l) {
+  const s = scene("s-flags"), m = s.marks;
+  const word = ".skip", n = Math.floor(clamp((l - m.type) / 0.12, 0, word.length));
+  $("skip").textContent = word.slice(0, n);
+  $("skip").style.display = n ? "inline" : "none";
+  const fl = prog(l, m.flag, m.flag + 0.5);
+  $("flagname").style.opacity = fl;
+  const wave = (x) => 18 * Math.sin(x / 40 + l * 7) * easeOut(fl);
+  let d = `M20 20`;
+  for (let x = 20; x <= 150; x += 10) d += ` L${x} ${20 + wave(x - 20)}`;
+  for (let x = 150; x >= 20; x -= 10) d += ` L${x} ${100 + wave(x - 20)}`;
+  $("flagcloth").setAttribute("d", d + " Z");
+  $("flagsvg").style.opacity = fl;
+  $("flagsvg").style.transform = `scaleY(${lerp(0.2, 1, back(fl))})`;
+  FLAGS.forEach((_, i) => {
+    const p = prog(l, m.chips + i * 0.12, m.chips + i * 0.12 + 0.35), el = $(`fc${i}`);
+    el.style.opacity = p; el.style.transform = `translateY(${(1 - back(p)) * 40}px) rotate(${(1 - p) * -4}deg)`;
+  });
+}
+
+const GATE = [
+  ["$ git push origin main", 0],
+  ['<span class="dim">pre-push: receipts check latest --fail-on contradicted,stale</span>', 1],
+  ['<span style="color:#ef6f66">✕ CONTRADICTED</span>  the build succeeds     <span class="dim">step 14 · exit 2</span>', 2],
+  ['<span style="color:#e0b552">◓ STALE</span>         All tests pass         <span class="dim">step 8 · edited at step 10</span>', 3],
+  ['<span style="color:#ef6f66">error: failed to push some refs</span>', 4],
+];
+function drawGate(t, l) {
+  const s = scene("s-gate"), m = s.marks;
+  const cmd = "git push origin main", n = Math.floor(clamp((l - 0.3) * 18, 0, cmd.length));
+  let out = `<span class="dim">$ </span>${cmd.slice(0, n)}`;
+  GATE.slice(1).forEach(([html, i]) => { if (l > m.out + (i - 1) * 0.35) out += "\n" + html; });
+  $("gpre").innerHTML = out;
+  const p = prog(l, m.block, m.block + 0.28);
+  const tp = $("tape1");
+  tp.style.opacity = p > 0 ? 1 : 0;
+  tp.style.top = lerp(-300, 760, easeOut(p)) + "px";
+  tp.style.transform = `rotate(${lerp(-12, -4, easeOut(p))}deg)`;
+}
+
+const TILES = TL.tiles;
+$("board").innerHTML = TILES.map((tile, i) => `<div><div class="tile" id="tile${i}">${tile.value.split("").map((_, j) => `<div class="flap" id="f${i}_${j}"></div>`).join("")}</div><p>${tile.label}</p></div>`).join("");
+function drawNums(t, l) {
+  const s = scene("s-nums"), m = s.marks;
+  const tp = prog(l, 0.1, 0.7);
+  $("ntitle").style.opacity = tp; $("ntitle").style.transform = `translateY(${(1 - easeOut(tp)) * 30}px)`;
+  TILES.forEach((tile, i) => {
+    tile.value.split("").forEach((ch, j) => {
+      const el = $(`f${i}_${j}`), start = m.flip + i * 0.45 + j * 0.12, settle = start + 0.9;
+      const r = rng(i * 31 + j * 7 + Math.floor(l * 18));
+      const glyphs = "0123456789<";
+      el.textContent = l < start ? "" : l < settle ? glyphs[Math.floor(r() * 10)] : ch;
+      el.style.color = l >= settle && tile.green ? "#79b886" : "#ece8e0";
+    });
+  });
+}
+
+function drawOutro(t, l) {
+  const s = scene("s-outro"), m = s.marks;
+  const a = prog(l, 0.1, 0.8), b = prog(l, 0.6, 1.2), c = prog(l, 0.9, 1.5);
+  $("otitle").style.opacity = a; $("otitle").style.transform = `translateY(${(1 - easeOut(a)) * 40}px)`;
+  $("ocmd").style.opacity = b; $("ocmd").style.transform = `translateY(${(1 - easeOut(b)) * 30}px)`;
+  $("ourl").style.opacity = c;
+  const pr = easeOut(prog(l, 0.4, m.stamp - 0.3));
+  $("ominiwrap").style.height = 720 * pr + "px";
+  stampAt($("ostamp"), l, m.stamp, -10, 1585, 820);
+}
+
+const DRAW = { "s-cold": drawCold, "s-title": drawTitle, "s-pipe": drawPipe, "s-report": drawReport, "s-stale": drawStale, "s-flags": drawFlags, "s-gate": drawGate, "s-nums": drawNums, "s-outro": drawOutro };
+
+window.render = (t, frame) => {
+  let shake = [0, 0];
+  for (const s of TL.scenes) {
+    const l = visible(s.id, t);
+    if (l === null) continue;
+    DRAW[s.id](t, l);
+    for (const at of s.shakes ?? []) { const [x, y] = shakeAt(l, at, s.shakeAmp ?? 16); shake = [shake[0] + x, shake[1] + y]; }
+  }
+  $("stage").style.transform = `translate(${shake[0]}px,${shake[1]}px)`;
+  const fl = Math.max(0, ...TL.flashes.map((f) => (t >= f.at ? Math.max(0, 1 - (t - f.at) / f.len) * f.amount : 0)));
+  $("flash").style.opacity = fl;
+  grain(frame);
+  caption(t);
+};
+</script>
+</body>
+</html>

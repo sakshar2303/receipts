@@ -1,11 +1,14 @@
 # Demo video: shot list and script
 
-`docs/demo.mp4` and its poster, `docs/assets/demo-poster.png`, are rendered by
-`npm run video` (`scripts/demo-video.mjs`): headless Chrome draws every frame with a moving
-camera, a cursor, verdict stamps and subtitles; the macOS `say` voice reads the narration
-(`VOICE=Samantha npm run video` picks another voice); ffmpeg synthesises the sound effects and
-music. Everything on screen is the bundled demo session, a synthetic CSV-parser task, so no
-real path, name or session appears. The system voices are licensed for personal,
+`docs/demo.mp4` (1080p60), its poster and a 4K60 master are rendered by `npm run video`.
+`scripts/video/stage.html` draws each frame as a pure function of time: the scenes, a 3D
+camera, kinetic captions, stamps, particles and film grain. `scripts/demo-video.mjs` captures
+the demo report as 4K textures, writes the narration with the best installed macOS voice (a
+Premium voice when one is installed; `VOICE=...` picks another), times every scene and sound
+to the narration, captures the frames, and mixes the soundtrack from
+`scripts/video/sound.mjs`: drums, bass, pads and an arpeggio, and every effect, all
+synthesised. `PREVIEW=1 npm run video` renders a quick draft. Everything on screen is the
+bundled demo or the project's own numbers. macOS system voices are licensed for personal,
 non-commercial use.
 
 To record it by hand with a voice instead, use the shot list and narration below.

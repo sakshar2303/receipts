@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-01
+
+### Changed
+
+- The demo is now a 76-second narrated film rendered at 4K and 60 fps: designed scenes, a
+  3D camera, kinetic captions, and a synthesised soundtrack with music and sound effects.
+
 ## [1.0.1] - 2026-10-31
 
 ### Added
@@ -63,6 +70,7 @@ First release. What real sessions taught along the way, and the bugs they expose
 - README, `docs/verdicts.md`, `docs/flags.md`, an architecture diagram, `CONTRIBUTING.md`,
   issue templates and a shot list for the demo video.
 
-[Unreleased]: https://github.com/sakshar2303/receipts/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/sakshar2303/receipts/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/sakshar2303/receipts/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/sakshar2303/receipts/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/sakshar2303/receipts/releases/tag/v1.0.0
